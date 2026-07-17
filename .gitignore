@@ -1,0 +1,8 @@
+target/
+.idea/
+.vscode/
+*.class
+audit.log
+staff-notes.yml
+backups/
+plugins/

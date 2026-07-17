@@ -1,0 +1,58 @@
+name: DiscordSRVStatusEmbed
+version: 1.9.0
+main: me.example.statusembed.StatusEmbed
+api-version: '1.21'
+depend:
+  - DiscordSRV
+commands:
+  discordstatusreload:
+    description: Reloads the DiscordSRVStatusEmbed configuration
+    usage: /discordstatusreload
+    permission: discordstatus.reload
+  dsreport:
+    description: Open the player reporting menu
+    usage: /dsreport [player]
+  dsnote:
+    description: Manage private staff notes for a player
+    usage: /dsnote <add|list|clear> <player> [note]
+    permission: discordstatus.notes
+  dswatch:
+    description: Manage the watchlist
+    usage: /dswatch <add|remove|list> [player]
+    permission: discordstatus.watchlist
+  discordstatusdiagnostics:
+    description: Show plugin and Discord configuration diagnostics
+    usage: /discordstatusdiagnostics
+    permission: discordstatus.config
+    aliases: [dsdiag]
+  discordstatusconfig:
+    description: Open the in-game configuration menu
+    usage: /discordstatusconfig
+    permission: discordstatus.config
+    aliases: [dscfg]
+  discordstatusbackup:
+    description: Back up the plugin configuration
+    usage: /discordstatusbackup
+    permission: discordstatus.config
+    aliases: [dsbackup]
+  discordstatusrestore:
+    description: Restore a plugin configuration backup
+    usage: /discordstatusrestore <backup-file.yml>
+    permission: discordstatus.config
+    aliases: [dsrestore]
+permissions:
+  discordstatus.reload:
+    description: Allows reloading the DiscordSRVStatusEmbed configuration
+    default: op
+  discordstatus.reports.notify:
+    description: Receives in-game notifications for submitted reports
+    default: op
+  discordstatus.config:
+    description: Allows configuration, backup, and restore actions
+    default: op
+  discordstatus.notes:
+    description: Allows staff-note management
+    default: op
+  discordstatus.watchlist:
+    description: Allows watchlist management and notifications
+    default: op

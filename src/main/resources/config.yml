@@ -1,0 +1,204 @@
+# DiscordSRVStatusEmbed configuration
+config-version: 2
+channel-id: "1526024733106110524"
+
+embeds:
+  info-color: "#5865F2"
+  donation-color: "#5865F2"
+  stats-color: "#5865F2"
+  announcement-color: "#FEE75C"
+  report-color: "#ED4245"
+
+server-start:
+  enabled: true
+  color: "#57F287"
+  title: "◆ SERVER ONLINE"
+  author:
+    name: "☁ Network Status"
+    icon-url: "%botavatarurl%"
+  description: "**The Minecraft server is now online.**\n\n◆ Status: `ONLINE`\n◆ Access: `OPEN`\n◆ Players: `Welcome!`"
+  footer:
+    text: "Minecraft Network • Online"
+    icon-url: "%botavatarurl%"
+  timestamp: true
+
+server-stop:
+  enabled: true
+  color: "#ED4245"
+  title: "◆ SERVER OFFLINE"
+  author:
+    name: "☁ Network Status"
+    icon-url: "%botavatarurl%"
+  description: "**The Minecraft server is currently offline.**\n\n◆ Status: `OFFLINE`\n◆ Access: `CLOSED`\n◆ Reason: `Server shutdown`"
+  footer:
+    text: "Minecraft Network • Offline"
+    icon-url: "%botavatarurl%"
+  timestamp: true
+
+server-info:
+  enabled: true
+  prefix: "!"
+  java-ip: "de1-free.witchly.host"
+  java-port: 40199
+  bedrock-enabled: true
+  bedrock-ip: "de1-free.witchly.host"
+  bedrock-port: 40199
+  version: "26.2.0"
+
+commands:
+  report:
+    enabled: true
+
+security:
+  # Applies to legacy ! commands. Slash commands already have Discord rate limits.
+  command-cooldown-seconds: 3
+
+discord:
+  # Discord user IDs allowed to use !purge and change the prefix.
+  owner-ids: []
+
+moderation:
+  # Discord user IDs allowed to use report and suggestion action buttons.
+  staff-user-ids: []
+
+verification:
+  enabled: true
+  channel-id: "1527525002868555827"
+  role-id: "1526031674729693285"
+  # Set automatically after the verification panel is created.
+  message-id: ""
+
+changelog:
+  enabled: true
+  channel-id: "1527193381825151169"
+  message-id: ""
+  # Entries post one at a time, then are remembered as published.
+  published-versions: []
+  entries:
+    - version: "1.0.0"
+      changes:
+        - "Initial server start and stop status embeds."
+    - version: "1.1.0"
+      changes:
+        - "Added help, aliases, GCash embeds, suggestions, player list, and server commands."
+    - version: "1.2.0"
+      changes:
+        - "Added native statistics, FAQ, staff embeds, announcement relay, and reporting menus."
+    - version: "1.3.1"
+      changes:
+        - "Added /dsreport, configuration, backup, restore, audit, and diagnostics commands."
+    - version: "1.4.0"
+      changes:
+        - "Added player profiles, selectable leaderboards, and richer report context."
+    - version: "1.5.0"
+      changes:
+        - "Added staff notes, watchlists, incident logs, status dashboard, and automatic backups."
+    - version: "1.6.0"
+      changes:
+        - "Added interactive moderation buttons for reports and suggestions."
+    - version: "1.6.1"
+      changes:
+        - "Added dashboard message ownership recovery."
+    - version: "1.6.2"
+      changes:
+        - "Redesigned the server status dashboard."
+    - version: "1.6.3"
+      changes:
+        - "Added Minecraft role verification panel."
+    - version: "1.6.4"
+      changes:
+        - "Added automatic changelog publishing and suggestion discussion prompts."
+    - version: "1.7.0"
+      changes:
+        - "Added config schema versioning, missing-default merging, report-state expiry, quit cleanup, and audit-log rotation."
+    - version: "1.8.0"
+      changes:
+        - "Added runtime suggestion-thread creation when supported by the installed DiscordSRV/JDA API."
+    - version: "1.9.0"
+      changes:
+        - "Added persistent changelog message editing, owner-only purge and prefix commands, and case-insensitive offline player lookup."
+
+audit-log:
+  enabled: true
+  max-bytes: 5000000
+
+watchlist:
+  players: []
+
+incident-log:
+  enabled: true
+  channel-id: "1526033393844752537"
+
+status-dashboard:
+  enabled: true
+  channel-id: "1527520604813525183"
+  interval-minutes: 10
+  # Set automatically after the first dashboard message is sent.
+  message-id: ""
+
+backups:
+  auto:
+    enabled: true
+    interval-hours: 24
+    keep: 10
+
+donations:
+  gcash-number: "09941718124"
+  gcash-qr: "gcash-qr.jpg"
+  account-name: "ExeSMPFund"
+
+suggestions:
+  channel-id: "1527334516929335356"
+  create-thread: true
+
+avatars:
+  provider-url: "https://mc-heads.net/avatar/{player}/100"
+
+faq:
+  ip: "de1-free.witchly.host"
+  version: "26.2"
+  bedrock: "Use port 40199."
+  discord: "https://discord.gg/xxxxx"
+  store: "https://store.example.com"
+
+staff:
+  dcowner:
+    - "cinco"
+  mcowner:
+    - "shan"
+  admins:
+    - "kent"
+    - "shan"
+  moderators:
+    - ""
+    - ""
+
+leaderboards:
+  # PLAYTIME, KILLS, DEATHS, MOB_KILLS, or BLOCKS_MINED
+  default-type: "PLAYTIME"
+  limit: 10
+
+announcements:
+  enabled: true
+  # Copy the numeric IDs from Discord for #mc-announcements and #mc-chat.
+  source-channel-id: "1527357652806533212"
+  target-channel-id: "1526024733106110524"
+  server-icon-url: ""
+
+reports:
+  channel-id: "1527365010454610242"
+  request-details: true
+  state-timeout-minutes: 30
+  discord-instructions: "To report a player, use `/dsreport` in Minecraft or contact the support channel."
+  categories:
+    - "Cheating / Hacking"
+    - "Harassment"
+    - "Griefing"
+    - "Inappropriate chat"
+    - "Other"
+
+log-purge:
+  enabled: true
+  channel-id: "1526033393844752537"
+  interval-minutes: 5
+  max-batches-per-run: 5
