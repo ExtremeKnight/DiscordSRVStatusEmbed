@@ -38,7 +38,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           body_path: .github/release-notes/${{ inputs.tag || github.ref_name }}.md
-          generate_release_notes: ${{ hashFiles(format('.github/release-notes/{0}.md', inputs.tag || github.ref_name)) == '' }}
+          generate_release_notes: false
           files: |
             README.md
             IMPROVEMENTS.md
