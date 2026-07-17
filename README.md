@@ -238,6 +238,17 @@ mvn clean package
 
 The POM targets Java 25, uses Paper API as `provided`, and uses the local DiscordSRV JAR as a system-scoped dependency. The shade plugin is configured, but Paper and DiscordSRV remain runtime-provided dependencies; the resulting plugin must still be installed alongside DiscordSRV.
 
+GitHub Actions runs Maven verification automatically for pushes and pull requests. To publish a release, create and push a semantic-version tag such as `v1.9.1`:
+
+```text
+git tag v1.9.1
+git push origin v1.9.1
+```
+
+The release workflow builds the plugin, generates GitHub release notes from commits and pull requests, and attaches the plugin JAR plus project documentation. Successful builds also retain a downloadable artifact for troubleshooting.
+
+> **Note:** GitHub Actions requires the Java 25 toolchain and the checked-in `DiscordSRV-Build-1.30.5.jar`. DiscordSRV remains a runtime dependency and is not shaded into the plugin.
+
 ## Development notes
 
 - Bukkit/Paper state is read on the server thread through scheduled tasks when invoked from Discord callbacks.
