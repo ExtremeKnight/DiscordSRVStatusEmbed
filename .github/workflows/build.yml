@@ -26,7 +26,7 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress clean verify
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DiscordSRVStatusEmbed-${{ github.sha }}
           path: target/DiscordSRVStatusEmbed-*.jar
