@@ -37,9 +37,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          generate_release_notes: true
+          body_path: .github/release-notes/${{ inputs.tag || github.ref_name }}.md
+          generate_release_notes: ${{ hashFiles(format('.github/release-notes/{0}.md', inputs.tag || github.ref_name)) == '' }}
           files: |
-            target/DiscordSRVStatusEmbed-*.jar
             README.md
             IMPROVEMENTS.md
             PROJECT_REVIEW.md
+            ${{ (inputs.tag || github.ref_name) == 'v1.9.0' && 'target/DiscordSRVStatusEmbed-*.jar' || '' }}
