@@ -142,13 +142,34 @@ public final class AutomationManager implements Listener {
             Object typeValue = raw.get("type");
             if (typeValue == null) throw new IllegalArgumentException("action type is missing");
             for (Map.Entry<?, ?> entry : raw.entrySet()) values.put(String.valueOf(entry.getKey()), entry.getValue());
-            definitions.add(new Automation.ActionDefinition(String.valueOf(typeValue), values));
+            Automation.ActionDefinition definition = new Automation.ActionDefinition(String.valueOf(typeValue), values);
+            validateAction(id, definition);
+            definitions.add(definition);
         }
         Map<String, Object> conditions = new HashMap<>();
         ConfigurationSection conditionsSection = section.getConfigurationSection("conditions");
         if (conditionsSection != null) for (String key : conditionsSection.getKeys(false)) conditions.put(key, conditionsSection.get(key));
+        long interval = section.getLong("interval-seconds", 0);
+        if (trigger == Trigger.SCHEDULED_INTERVAL && interval <= 0) throw new IllegalArgumentException("scheduled automation requires interval-seconds > 0");
         return new Automation(id, enabled, trigger, conditions, definitions,
-                section.getLong("cooldown-seconds", 0), section.getLong("interval-seconds", 0));
+                section.getLong("cooldown-seconds", 0), interval);
+    }
+
+    private void validateAction(String automationId, Automation.ActionDefinition definition) {
+        if (!actions.contains(definition.type())) throw new IllegalArgumentException("unknown action '" + definition.type() + "'");
+        String type = definition.type().toUpperCase(Locale.ROOT);
+        if (type.equals("CONSOLE_COMMAND") || type.equals("PLAYER_COMMAND")) require(automationId, definition, "command");
+        if (type.equals("DISCORD_MESSAGE") || type.equals("DISCORD_EMBED")) require(automationId, definition, "channel");
+        if (type.equals("GIVE_ITEMS")) {
+            Material material = Material.matchMaterial(value(definition, "material"));
+            if (material == null) throw new IllegalArgumentException("unknown material in automation '" + automationId + "'");
+            if (integer(definition, "amount", 1) < 1) throw new IllegalArgumentException("item amount must be positive");
+        }
+        if (type.equals("GIVE_XP") && integer(definition, "amount", 0) < 0) throw new IllegalArgumentException("XP amount cannot be negative");
+    }
+
+    private void require(String automationId, Automation.ActionDefinition definition, String key) {
+        if (value(definition, key).isBlank()) throw new IllegalArgumentException("automation '" + automationId + "' requires action field '" + key + "'");
     }
 
     private boolean conditionsPass(Automation automation, AutomationContext context) {
@@ -167,7 +188,7 @@ public final class AutomationManager implements Listener {
         actions.register("PLAYER_COMMAND", (context, definition) -> { if (context.player() != null) context.player().performCommand(context.replace(value(definition, "command"))); });
         actions.register("BROADCAST_MESSAGE", (context, definition) -> Bukkit.broadcastMessage(context.replace(value(definition, "message"))));
         actions.register("GIVE_XP", (context, definition) -> { if (context.player() != null) context.player().giveExp(integer(definition, "amount", 0)); });
-        actions.register("GIVE_ITEMS", (context, definition) -> { if (context.player() != null) context.player().getInventory().addItem(new ItemStack(Material.matchMaterial(value(definition, "material")), integer(definition, "amount", 1))); });
+        actions.register("GIVE_ITEMS", (context, definition) -> { if (context.player() != null) { Material material = Material.matchMaterial(value(definition, "material")); if (material != null) context.player().getInventory().addItem(new ItemStack(material, integer(definition, "amount", 1))); } });
         actions.register("PLAY_SOUND", (context, definition) -> { if (context.player() != null) context.player().playSound(context.player().getLocation(), Sound.valueOf(value(definition, "sound").toUpperCase(Locale.ROOT)), 1f, 1f); });
         actions.register("TELEPORT_PLAYER", (context, definition) -> { if (context.player() != null) { String world = value(definition, "world"); if (Bukkit.getWorld(world) != null) context.player().teleport(Bukkit.getWorld(world).getSpawnLocation()); } });
         actions.register("SAVE_CONFIGURATION", (context, definition) -> plugin.saveConfig());
