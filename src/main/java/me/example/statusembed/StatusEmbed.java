@@ -360,11 +360,15 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         commands.add(new PluginSlashCommand(this, new CommandData("faq", "Show frequently asked questions")));
         commands.add(new PluginSlashCommand(this, new CommandData("staff", "Show the server staff team")));
         commands.add(new PluginSlashCommand(this, new CommandData("report", "Learn how to report a player")));
-        commands.add(new PluginSlashCommand(this, new CommandData("playtime", "Show a player's playtime (use !playtime <player>)")));
-        commands.add(new PluginSlashCommand(this, new CommandData("seen", "Show when a player was last seen (use !seen <player>)")));
-        commands.add(new PluginSlashCommand(this, new CommandData("stats", "Show player stats (use !stats <player>)")));
+        commands.add(new PluginSlashCommand(this, new CommandData("playtime", "Show a player's playtime")
+                .addOptions(new OptionData(OptionType.STRING, "player", "Minecraft player name", true))));
+        commands.add(new PluginSlashCommand(this, new CommandData("seen", "Show when a player was last seen")
+                .addOptions(new OptionData(OptionType.STRING, "player", "Minecraft player name", true))));
+        commands.add(new PluginSlashCommand(this, new CommandData("stats", "Show player statistics")
+                .addOptions(new OptionData(OptionType.STRING, "player", "Minecraft player name", true))));
         commands.add(new PluginSlashCommand(this, new CommandData("leaderboard", "Show the configured leaderboard")));
-        commands.add(new PluginSlashCommand(this, new CommandData("profile", "Show a player profile (use !profile <player>)")));
+        commands.add(new PluginSlashCommand(this, new CommandData("profile", "Show a player profile")
+                .addOptions(new OptionData(OptionType.STRING, "player", "Minecraft player name", true))));
         return commands;
     }
 
@@ -461,6 +465,38 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     public void onProfileSlashCommand(SlashCommandEvent event) {
         event.getHook().sendMessageEmbeds(new EmbedBuilder().setTitle("❖ Player Profile")
                 .setDescription("Use `!profile <player>` to view a full player profile.").setColor(EMBED_COLOR).build()).queue();
+    }
+
+    @SlashCommand(path = "playtime", deferReply = true)
+    public void onPlaytimeSlashCommand(SlashCommandEvent event) { sendSlashPlayerEmbed(event, "playtime"); }
+
+    @SlashCommand(path = "seen", deferReply = true)
+    public void onSeenSlashCommand(SlashCommandEvent event) { sendSlashPlayerEmbed(event, "seen"); }
+
+    @SlashCommand(path = "stats", deferReply = true)
+    public void onStatsSlashCommand(SlashCommandEvent event) { sendSlashPlayerEmbed(event, "stats"); }
+
+    private void sendSlashPlayerEmbed(SlashCommandEvent event, String type) {
+        github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.OptionMapping option = event.getOption("player");
+        String requested = option == null ? "" : sanitizeUserInput(option.getAsString(), 16);
+        if (!requested.matches("[A-Za-z0-9_]{3,16}")) {
+            event.getHook().sendMessage("Enter a valid Minecraft player name.").setEphemeral(true).queue();
+            return;
+        }
+        Bukkit.getScheduler().runTask(this, () -> {
+            OfflinePlayer player = resolveOfflinePlayer(requested);
+            if (player == null || !player.hasPlayedBefore()) {
+                event.getHook().sendMessage("Player `" + requested + "` has never joined ExeSMP.").setEphemeral(true).queue();
+                return;
+            }
+            github.scarsz.discordsrv.dependencies.jda.api.entities.MessageEmbed embed = switch (type) {
+                case "playtime" -> buildPlaytimeEmbed(player);
+                case "seen" -> buildSeenEmbed(player);
+                case "stats" -> buildStatsEmbed(player);
+                default -> new EmbedBuilder().setTitle("Player Profile").setDescription("Use the prefix profile command for the complete profile.").setColor(EMBED_COLOR).build();
+            };
+            event.getHook().sendMessageEmbeds(embed).queue();
+        });
     }
 
     // === "!" prefix chat commands, e.g. "!java" ===

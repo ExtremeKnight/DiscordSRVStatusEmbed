@@ -125,6 +125,10 @@ changelog:
       changes:
         - "Connected report submission, suggestion moderation, verification completion, and dashboard refresh events to the automation engine."
         - "Moved report wizard state into a dedicated repository and added safer automation context player handling."
+    - version: "1.12.0"
+      changes:
+        - "Added validated slash-command player options for playtime, seen, and statistics lookups."
+        - "Added main-thread offline-player resolution for slash commands with clear unknown-player responses."
 
 audit-log:
   enabled: true
