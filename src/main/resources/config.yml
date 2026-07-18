@@ -202,3 +202,23 @@ log-purge:
   channel-id: "1526033393844752537"
   interval-minutes: 5
   max-batches-per-run: 5
+
+# Optional configuration-driven automations. Invalid entries are logged and skipped.
+automations:
+  welcome:
+    enabled: false
+    trigger:
+      type: PLAYER_JOIN
+    conditions:
+      permission: ""
+      first_join: false
+    actions:
+      - type: DISCORD_EMBED
+        channel: welcome
+        title: "Player Joined"
+        description: "{player} joined the server."
+      - type: UPDATE_DASHBOARD
+
+automation-channels:
+  # Replace these aliases with numeric Discord channel IDs before enabling automations.
+  welcome: ""

@@ -1,0 +1,21 @@
+package me.example.statusembed.automation;
+
+/** Events that can start a configured automation. */
+public enum Trigger {
+    PLAYER_JOIN,
+    PLAYER_QUIT,
+    PLAYER_DEATH,
+    PLAYER_ADVANCEMENT_DONE,
+    ASYNC_PLAYER_CHAT,
+    PLAYER_COMMAND_PREPROCESS,
+    SERVER_STARTUP,
+    SERVER_SHUTDOWN,
+    SCHEDULED_INTERVAL,
+    DISCORD_SLASH_COMMAND,
+    DISCORD_BUTTON,
+    SUGGESTION_ACCEPTED,
+    SUGGESTION_DENIED,
+    VERIFICATION_COMPLETE,
+    REPORT_SUBMITTED,
+    DASHBOARD_REFRESH
+}

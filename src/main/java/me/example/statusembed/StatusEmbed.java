@@ -1,5 +1,6 @@
 package me.example.statusembed;
 
+import me.example.statusembed.automation.AutomationManager;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -67,6 +68,8 @@ import java.util.concurrent.TimeoutException;
 
 public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandProvider {
 
+    private AutomationManager automationManager;
+
     private boolean discordReady = false;
     private boolean serverStarted = false;
     private boolean jdaListenerRegistered = false;
@@ -102,6 +105,9 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         }
 
         Bukkit.getPluginManager().registerEvents(this, this);
+        automationManager = new AutomationManager(this);
+        automationManager.load();
+        Bukkit.getPluginManager().registerEvents(automationManager, this);
         loadNotes();
         verifyRegisteredCommands();
         DiscordSRV.api.subscribe(this);
@@ -176,6 +182,10 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
 
     @Override
     public void onDisable() {
+        if (automationManager != null) {
+            automationManager.shutdown();
+            automationManager = null;
+        }
         DiscordSRV.api.unsubscribe(this);
 
         if (logPurgeTask != null) {

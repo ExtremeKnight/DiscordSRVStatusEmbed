@@ -114,6 +114,8 @@ All paths below refer to the generated `config.yml`.
 | `announcements.*` | configured | Source and target channel IDs for announcement relay. |
 | `reports.*` | configured | Report channel, categories, details prompt, and Discord instructions. |
 | `log-purge.*` | configured | Optional periodic deletion of a configured channel's recent messages. |
+| `automations.*` | disabled sample | Validated trigger/action workflows executed by the automation engine. Invalid definitions are logged and skipped. |
+| `automation-channels.*` | empty | Friendly names mapped to numeric Discord channel IDs for automation actions. |
 
 ### Valid leaderboard types
 
@@ -204,7 +206,7 @@ flowchart LR
   Plugin --> Files[config.yml, audit.log, staff-notes.yml, backups]
 ```
 
-`StatusEmbed` is both the Bukkit plugin entry point and the DiscordSRV `SlashCommandProvider`. It registers Bukkit listeners, subscribes to DiscordSRV events, attaches a JDA listener for legacy prefix commands and buttons, schedules Bukkit tasks, and uses Paper's main thread when reading Bukkit state from Discord callbacks.
+`StatusEmbed` remains the Bukkit plugin entry point and DiscordSRV `SlashCommandProvider`. The modular automation layer is registered as a separate Bukkit listener. It validates YAML definitions at startup, dispatches supported Paper events, schedules interval triggers on Bukkit's scheduler, executes Minecraft actions on the server thread, and uses JDA's asynchronous `queue()` operations for Discord actions. Existing legacy handlers remain active while responsibility is extracted incrementally.
 
 The current source imports DiscordSRV and relocated JDA classes directly. It does not use reflection for DiscordSRV integration.
 
@@ -255,7 +257,8 @@ The release workflow builds the plugin, generates GitHub release notes from comm
 - Discord network actions generally use JDA's asynchronous `queue()` API.
 - Shutdown status delivery is intentionally blocking for up to five seconds because the JVM may exit immediately.
 - Configuration reload does not overwrite existing user configuration, so new settings must be merged manually after upgrades.
-- The single Java class currently owns commands, listeners, persistence, embeds, scheduling, and Discord integration.
+- The legacy `StatusEmbed` facade still owns many existing handlers; modular extraction is intentionally staged to preserve behavior.
+- Automation Discord role assignment/removal requires a project-specific guild/role adapter before those actions are enabled.
 
 ## Troubleshooting
 
