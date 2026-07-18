@@ -3,6 +3,8 @@ package me.example.statusembed;
 import me.example.statusembed.automation.AutomationManager;
 import me.example.statusembed.config.ConfigService;
 import me.example.statusembed.scheduler.SchedulerService;
+import me.example.statusembed.storage.AuditLogService;
+import me.example.statusembed.storage.NotesRepository;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -73,6 +75,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private AutomationManager automationManager;
     private ConfigService configService;
     private SchedulerService schedulerService;
+    private AuditLogService auditLogService;
 
     private boolean discordReady = false;
     private boolean serverStarted = false;
@@ -86,8 +89,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private final Set<java.util.UUID> awaitingReportDetails = new HashSet<>();
     private final Map<java.util.UUID, Long> reportStateStarted = new HashMap<>();
     private final Map<String, Long> discordCommandCooldowns = new ConcurrentHashMap<>();
-    private File notesFile;
-    private YamlConfiguration notes;
+    private NotesRepository notesRepository;
 
     @Override
     public void onEnable() {
@@ -95,6 +97,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         configService = new ConfigService(this);
         configService.prepare();
         schedulerService = new SchedulerService(this);
+        auditLogService = new AuditLogService(this);
         String qrFile = getConfig().getString("donations.gcash-qr", "gcash-qr.jpg");
         if (isSafeFileName(qrFile) && !new File(getDataFolder(), qrFile).exists()) {
             saveResource("gcash-qr.jpg", false);
@@ -114,7 +117,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         automationManager = new AutomationManager(this);
         automationManager.load();
         Bukkit.getPluginManager().registerEvents(automationManager, this);
-        loadNotes();
+        notesRepository = new NotesRepository(this);
         verifyRegisteredCommands();
         DiscordSRV.api.subscribe(this);
 
@@ -196,6 +199,8 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             schedulerService.cancelAll();
             schedulerService = null;
         }
+        auditLogService = null;
+        notesRepository = null;
         DiscordSRV.api.unsubscribe(this);
 
         if (logPurgeTask != null) {
@@ -1333,21 +1338,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     }
 
     private void audit(String entry) {
-        if (!getConfig().getBoolean("audit-log.enabled", true)) return;
-        getServer().getScheduler().runTaskAsynchronously(this, () -> {
-            try {
-                File log = new File(getDataFolder(), "audit.log");
-                rotateAuditLogIfNeeded(log);
-                Files.writeString(log.toPath(), Instant.now() + " " + entry + System.lineSeparator(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-            } catch (IOException exception) { getLogger().warning("Could not write audit log: " + exception.getMessage()); }
-        });
-    }
-
-    private void rotateAuditLogIfNeeded(File log) throws IOException {
-        long maxBytes = Math.max(1024L, getConfig().getLong("audit-log.max-bytes", 5_000_000L));
-        if (!log.isFile() || log.length() < maxBytes) return;
-        File rotated = new File(getDataFolder(), "audit-" + System.currentTimeMillis() + ".log");
-        Files.move(log.toPath(), rotated.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        if (auditLogService != null) auditLogService.write(entry);
     }
 
     private void expireReportState() {
@@ -1370,36 +1361,26 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
                 + ", dashboard=" + channelStatus("status-dashboard.channel-id"));
     }
 
-    private void loadNotes() {
-        notesFile = new File(getDataFolder(), "staff-notes.yml");
-        notes = YamlConfiguration.loadConfiguration(notesFile);
-    }
-
-    private void saveNotes() {
-        try { notes.save(notesFile); }
-        catch (IOException exception) { getLogger().warning("Could not save staff notes: " + exception.getMessage()); }
-    }
-
     private void handleNoteCommand(CommandSender sender, String[] args) {
         if (args.length < 2) { sender.sendMessage("§eUsage: /dsnote <add|list|clear> <player> [note]"); return; }
         String action = args[0].toLowerCase();
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
         String path = "notes." + target.getUniqueId();
         if (action.equals("list")) {
-            List<String> entries = notes.getStringList(path);
+            List<String> entries = notesRepository.configuration().getStringList(path);
             sender.sendMessage("§6Staff notes for §e" + args[1] + "§6: " + (entries.isEmpty() ? "§7none" : ""));
             for (String entry : entries) sender.sendMessage("§7• " + entry);
             return;
         }
         if (action.equals("clear")) {
-            notes.set(path, null); saveNotes(); sender.sendMessage("§aCleared staff notes for " + args[1] + "."); audit("NOTE_CLEAR actor=" + sender.getName() + " player=" + args[1]); return;
+            notesRepository.configuration().set(path, null); notesRepository.save(); sender.sendMessage("§aCleared staff notes for " + args[1] + "."); audit("NOTE_CLEAR actor=" + sender.getName() + " player=" + args[1]); return;
         }
         if (!action.equals("add") || args.length < 3) { sender.sendMessage("§eUsage: /dsnote add <player> <note>"); return; }
         String note = sanitizeUserInput(String.join(" ", Arrays.copyOfRange(args, 2, args.length)), 400);
         if (note.isEmpty()) { sender.sendMessage("§cNote cannot be empty."); return; }
-        List<String> entries = notes.getStringList(path);
+        List<String> entries = notesRepository.configuration().getStringList(path);
         entries.add(Instant.now() + " | " + sender.getName() + " | " + note);
-        notes.set(path, entries); saveNotes();
+        notesRepository.configuration().set(path, entries); notesRepository.save();
         sender.sendMessage("§aStaff note saved for " + args[1] + "."); audit("NOTE_ADD actor=" + sender.getName() + " player=" + args[1]);
     }
 
