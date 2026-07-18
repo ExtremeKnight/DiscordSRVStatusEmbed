@@ -788,6 +788,9 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             embed.addField("Status", label, true).addField("Handled by", event.getUser().getName(), true).setTimestamp(Instant.now());
             event.editMessageEmbeds(embed.build()).setActionRows(java.util.Collections.emptyList()).queue();
             audit("DISCORD_BUTTON user=" + event.getUser().getId() + " action=" + id + " message=" + event.getMessageId());
+            if (automationManager != null && id.startsWith("suggestion:")) {
+                automationManager.dispatch(action.equalsIgnoreCase("accepted") ? me.example.statusembed.automation.Trigger.SUGGESTION_ACCEPTED : me.example.statusembed.automation.Trigger.SUGGESTION_DENIED, event, DiscordSRV.getPlugin().getJda());
+            }
         } catch (Exception exception) {
             getLogger().warning("Could not update interactive message: " + exception.getMessage());
         }
@@ -958,6 +961,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         event.deferReply(true).setContent("Verification complete — the Minecraft role has been assigned.").queue();
         if (verificationService != null && verificationService.assignRole(DiscordSRV.getPlugin().getJda(), event.getGuild().getId(), event.getUser().getId())) {
             audit("VERIFY user=" + event.getUser().getId());
+            if (automationManager != null) automationManager.dispatch(me.example.statusembed.automation.Trigger.VERIFICATION_COMPLETE, event, DiscordSRV.getPlugin().getJda());
         } else {
             getLogger().warning("Could not assign Minecraft role through VerificationService.");
         }
@@ -1279,6 +1283,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
                 .setColor(getEmbedColor("embeds.report-color", "#ED4245")).build())
                 .setActionRow(Button.primary("report:claimed", "Claim"), Button.primary("report:investigating", "Investigating"), Button.danger("report:invalid", "Invalid"), Button.danger("report:punished", "Punished"), Button.secondary("report:closed", "Closed")).queue();
         audit("REPORT reporter=" + reporter.getName() + " target=" + (target.getName() == null ? targetId : target.getName()) + " reason=" + reason);
+        if (automationManager != null) automationManager.dispatch(me.example.statusembed.automation.Trigger.REPORT_SUBMITTED, reporter, jda);
     }
 
     private boolean tryConsumeDiscordCommand(String userId) {
@@ -1446,6 +1451,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private void scheduleStatusDashboard() { if (dashboardService != null) dashboardService.start(); }
 
     public void refreshDashboard() {
+        if (automationManager != null) automationManager.dispatch(me.example.statusembed.automation.Trigger.DASHBOARD_REFRESH, null, DiscordSRV.getPlugin().getJda());
         String channelId = getConfig().getString("status-dashboard.channel-id", "");
         JDA jda = DiscordSRV.getPlugin().getJda();
         TextChannel channel = jda == null || !channelId.matches("\\d{17,20}") ? null : jda.getTextChannelById(channelId);

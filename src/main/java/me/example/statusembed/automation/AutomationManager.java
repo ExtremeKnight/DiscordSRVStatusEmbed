@@ -48,6 +48,7 @@ public final class AutomationManager implements Listener {
     private final CooldownManager cooldowns = new CooldownManager();
     private final Map<String, Automation> automations = new ConcurrentHashMap<>();
     private final Map<String, Runnable> customActions = new ConcurrentHashMap<>();
+    private final ThreadLocal<Boolean> dashboardDispatching = ThreadLocal.withInitial(() -> false);
     private final List<BukkitTask> scheduledTasks = new ArrayList<>();
     private final AutomationExecutor executor;
     private final DiscordTransport discordTransport;
@@ -85,6 +86,9 @@ public final class AutomationManager implements Listener {
     public Map<String, Automation> automations() { return Collections.unmodifiableMap(automations); }
 
     public void dispatch(Trigger trigger, Object event, JDA jda) {
+        if (trigger == Trigger.DASHBOARD_REFRESH && dashboardDispatching.get()) return;
+        if (trigger == Trigger.DASHBOARD_REFRESH) dashboardDispatching.set(true);
+        try {
         for (Automation automation : automations.values()) {
             if (!automation.enabled() || automation.trigger() != trigger) continue;
             String actor = event instanceof org.bukkit.event.player.PlayerEvent e ? e.getPlayer().getUniqueId().toString() : "global";
@@ -93,6 +97,9 @@ public final class AutomationManager implements Listener {
             if (!conditionsPass(automation, context)) continue;
             Runnable run = () -> executor.execute(automation, context);
             if (Bukkit.isPrimaryThread()) run.run(); else Bukkit.getScheduler().runTask(plugin, run);
+        }
+        } finally {
+            if (trigger == Trigger.DASHBOARD_REFRESH) dashboardDispatching.set(false);
         }
     }
 

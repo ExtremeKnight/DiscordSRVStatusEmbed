@@ -21,6 +21,9 @@ public final class AutomationContext {
         if (event instanceof org.bukkit.event.player.PlayerEvent playerEvent) {
             variables.put("player", playerEvent.getPlayer().getName());
             variables.put("uuid", playerEvent.getPlayer().getUniqueId().toString());
+        } else if (event instanceof Player player) {
+            variables.put("player", player.getName());
+            variables.put("uuid", player.getUniqueId().toString());
         }
     }
 
@@ -29,7 +32,8 @@ public final class AutomationContext {
     public JDA jda() { return jda; }
     public Map<String, String> variables() { return variables; }
     public Player player() {
-        return event instanceof org.bukkit.event.player.PlayerEvent e ? e.getPlayer() : null;
+        if (event instanceof org.bukkit.event.player.PlayerEvent e) return e.getPlayer();
+        return event instanceof Player player ? player : null;
     }
 
     public String replace(String value) {

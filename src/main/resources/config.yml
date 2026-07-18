@@ -121,6 +121,10 @@ changelog:
       changes:
         - "Added modular configuration, scheduler, storage, dashboard, Discord transport, verification, suggestions, reports, and command-routing services."
         - "Added configurable automation triggers, conditions, cooldowns, and independently registered actions."
+    - version: "1.11.0"
+      changes:
+        - "Connected report submission, suggestion moderation, verification completion, and dashboard refresh events to the automation engine."
+        - "Moved report wizard state into a dedicated repository and added safer automation context player handling."
 
 audit-log:
   enabled: true

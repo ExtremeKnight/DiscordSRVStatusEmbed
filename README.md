@@ -7,7 +7,7 @@
 
 DiscordSRVStatusEmbed is a Paper plugin that extends DiscordSRV with server-status embeds, Discord commands, player statistics, suggestions, reports, verification, announcements, diagnostics, and configurable operational automation.
 
-> **Current release:** 1.10.0. The project is migrating from the original `StatusEmbed` facade to focused services and a configurable automation engine.
+> **Current release:** 1.11.0. The project is migrating from the original `StatusEmbed` facade to focused services and a configurable automation engine.
 
 ## Why this plugin exists
 
@@ -47,7 +47,7 @@ Discord features use the relocated JDA classes supplied by DiscordSRV 1.30.5. Th
 
 1. Stop the server.
 2. Install and configure DiscordSRV.
-3. Copy `DiscordSRVStatusEmbed-1.10.0.jar` into `plugins/`.
+3. Copy `DiscordSRVStatusEmbed-1.11.0.jar` into `plugins/`.
 4. Start the server once so the plugin creates its data folder and configuration.
 5. Edit `plugins/DiscordSRVStatusEmbed/config.yml`; replace placeholder channel IDs and staff IDs.
 6. Restart the server. A full restart is recommended after replacing the JAR because DiscordSRV registers slash commands during connection.
