@@ -7,6 +7,7 @@ import me.example.statusembed.storage.AuditLogService;
 import me.example.statusembed.storage.NotesRepository;
 import me.example.statusembed.verification.VerificationService;
 import me.example.statusembed.dashboard.DashboardService;
+import me.example.statusembed.reports.ReportStateStore;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -86,10 +87,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private BukkitTask statusDashboardTask;
     private BukkitTask autoBackupTask;
     private static final Color EMBED_COLOR = Color.decode("#5865F2");
-    private final Map<java.util.UUID, java.util.UUID> reportTargets = new HashMap<>();
-    private final Map<java.util.UUID, String> reportReasons = new HashMap<>();
-    private final Set<java.util.UUID> awaitingReportDetails = new HashSet<>();
-    private final Map<java.util.UUID, Long> reportStateStarted = new HashMap<>();
+    private final ReportStateStore reportState = new ReportStateStore();
     private final Map<String, Long> discordCommandCooldowns = new ConcurrentHashMap<>();
     private NotesRepository notesRepository;
     private VerificationService verificationService;
@@ -273,8 +271,8 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
                     sender.sendMessage("§cThat player is not online. Use /dsreport to choose an online player.");
                     return true;
                 }
-                reportTargets.put(reporter.getUniqueId(), target.getUniqueId());
-                reportStateStarted.put(reporter.getUniqueId(), System.currentTimeMillis());
+                reportState.targets().put(reporter.getUniqueId(), target.getUniqueId());
+                reportState.started().put(reporter.getUniqueId(), System.currentTimeMillis());
                 openReportReasonMenu(reporter);
             } else openReportPlayerMenu(reporter);
             return true;
@@ -1225,15 +1223,15 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             if (!(event.getCurrentItem().getItemMeta() instanceof SkullMeta)) return;
             OfflinePlayer target = ((SkullMeta) event.getCurrentItem().getItemMeta()).getOwningPlayer();
             if (target == null) return;
-            reportTargets.put(reporter.getUniqueId(), target.getUniqueId());
-            reportStateStarted.put(reporter.getUniqueId(), System.currentTimeMillis());
+            reportState.targets().put(reporter.getUniqueId(), target.getUniqueId());
+            reportState.started().put(reporter.getUniqueId(), System.currentTimeMillis());
             openReportReasonMenu(reporter);
         } else {
             String reason = event.getCurrentItem().getItemMeta().getDisplayName().replace("§e", "");
-            reportReasons.put(reporter.getUniqueId(), reason);
+            reportState.reasons().put(reporter.getUniqueId(), reason);
             reporter.closeInventory();
             if (getConfig().getBoolean("reports.request-details", true)) {
-                awaitingReportDetails.add(reporter.getUniqueId());
+                reportState.awaitingDetails().add(reporter.getUniqueId());
                 reporter.sendMessage("§eType any extra report details in chat, or type §fskip§e to submit now.");
             } else submitReport(reporter, "No additional details provided.");
         }
@@ -1242,7 +1240,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onReportChat(AsyncPlayerChatEvent event) {
         Player reporter = event.getPlayer();
-        if (!awaitingReportDetails.remove(reporter.getUniqueId())) return;
+        if (!reportState.awaitingDetails().remove(reporter.getUniqueId())) return;
         event.setCancelled(true);
         String details = event.getMessage().equalsIgnoreCase("skip") ? "No additional details provided." : event.getMessage();
         Bukkit.getScheduler().runTask(this, () -> submitReport(reporter, details));
@@ -1254,9 +1252,9 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     }
 
     private void submitReport(Player reporter, String details) {
-        java.util.UUID targetId = reportTargets.remove(reporter.getUniqueId());
-        String reason = reportReasons.remove(reporter.getUniqueId());
-        reportStateStarted.remove(reporter.getUniqueId());
+        java.util.UUID targetId = reportState.targets().remove(reporter.getUniqueId());
+        String reason = reportState.reasons().remove(reporter.getUniqueId());
+        reportState.started().remove(reporter.getUniqueId());
         if (targetId == null || reason == null) return;
         details = sanitizeUserInput(details, 800);
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
@@ -1358,12 +1356,10 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
 
     private void expireReportState() {
         long cutoff = System.currentTimeMillis() - Math.max(5L, getConfig().getLong("reports.state-timeout-minutes", 30L)) * 60_000L;
-        reportStateStarted.entrySet().removeIf(entry -> {
+        reportState.started().entrySet().removeIf(entry -> {
             if (entry.getValue() >= cutoff) return false;
             UUID id = entry.getKey();
-            reportTargets.remove(id);
-            reportReasons.remove(id);
-            awaitingReportDetails.remove(id);
+            reportState.clear(id);
             return true;
         });
     }
@@ -1427,10 +1423,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
-        reportTargets.remove(id);
-        reportReasons.remove(id);
-        reportStateStarted.remove(id);
-        awaitingReportDetails.remove(id);
+        reportState.clear(id);
         logServerEvent("Player left", event.getPlayer().getName());
     }
 
