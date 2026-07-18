@@ -1,6 +1,8 @@
 package me.example.statusembed;
 
 import me.example.statusembed.automation.AutomationManager;
+import me.example.statusembed.config.ConfigService;
+import me.example.statusembed.scheduler.SchedulerService;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -69,6 +71,8 @@ import java.util.concurrent.TimeoutException;
 public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandProvider {
 
     private AutomationManager automationManager;
+    private ConfigService configService;
+    private SchedulerService schedulerService;
 
     private boolean discordReady = false;
     private boolean serverStarted = false;
@@ -88,7 +92,9 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        mergeMissingConfiguration();
+        configService = new ConfigService(this);
+        configService.prepare();
+        schedulerService = new SchedulerService(this);
         String qrFile = getConfig().getString("donations.gcash-qr", "gcash-qr.jpg");
         if (isSafeFileName(qrFile) && !new File(getDataFolder(), qrFile).exists()) {
             saveResource("gcash-qr.jpg", false);
@@ -128,8 +134,8 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         scheduleLogPurgeTask();
         scheduleStatusDashboard();
         scheduleAutoBackups();
-        Bukkit.getScheduler().runTaskTimer(this, this::expireReportState, 20L * 60L, 20L * 60L);
-        getServer().getScheduler().runTaskTimerAsynchronously(this, this::pruneCooldowns, 20L * 60L, 20L * 60L);
+        schedulerService.repeatSync(20L * 60L, 20L * 60L, this::expireReportState);
+        schedulerService.repeatAsync(20L * 60L, 20L * 60L, this::pruneCooldowns);
 
         getLogger().info("DiscordSRVStatusEmbed has been enabled!");
     }
@@ -185,6 +191,10 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         if (automationManager != null) {
             automationManager.shutdown();
             automationManager = null;
+        }
+        if (schedulerService != null) {
+            schedulerService.cancelAll();
+            schedulerService = null;
         }
         DiscordSRV.api.unsubscribe(this);
 
@@ -1338,28 +1348,6 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         if (!log.isFile() || log.length() < maxBytes) return;
         File rotated = new File(getDataFolder(), "audit-" + System.currentTimeMillis() + ".log");
         Files.move(log.toPath(), rotated.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    private void mergeMissingConfiguration() {
-        try (java.io.InputStream stream = getResource("config.yml")) {
-            if (stream == null) return;
-            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
-            mergeConfigurationSection(defaults, "");
-            getConfig().set("config-version", Math.max(2, getConfig().getInt("config-version", 1)));
-            saveConfig();
-        } catch (IOException exception) {
-            getLogger().warning("Could not merge new configuration defaults: " + exception.getMessage());
-        }
-    }
-
-    private void mergeConfigurationSection(YamlConfiguration defaults, String path) {
-        org.bukkit.configuration.ConfigurationSection section = path.isEmpty() ? defaults : defaults.getConfigurationSection(path);
-        if (section == null) return;
-        for (String key : section.getKeys(false)) {
-            String childPath = path.isEmpty() ? key : path + "." + key;
-            if (defaults.isConfigurationSection(childPath)) mergeConfigurationSection(defaults, childPath);
-            else if (!getConfig().contains(childPath)) getConfig().set(childPath, defaults.get(childPath));
-        }
     }
 
     private void expireReportState() {
