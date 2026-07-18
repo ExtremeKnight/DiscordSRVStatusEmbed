@@ -6,6 +6,7 @@ import me.example.statusembed.scheduler.SchedulerService;
 import me.example.statusembed.storage.AuditLogService;
 import me.example.statusembed.storage.NotesRepository;
 import me.example.statusembed.verification.VerificationService;
+import me.example.statusembed.dashboard.DashboardService;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -92,6 +93,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private final Map<String, Long> discordCommandCooldowns = new ConcurrentHashMap<>();
     private NotesRepository notesRepository;
     private VerificationService verificationService;
+    private DashboardService dashboardService;
 
     @Override
     public void onEnable() {
@@ -121,6 +123,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         Bukkit.getPluginManager().registerEvents(automationManager, this);
         notesRepository = new NotesRepository(this);
         verificationService = new VerificationService(this);
+        dashboardService = new DashboardService(this);
         verifyRegisteredCommands();
         DiscordSRV.api.subscribe(this);
 
@@ -212,6 +215,10 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             logPurgeTask = null;
         }
         if (statusDashboardTask != null) statusDashboardTask.cancel();
+        if (dashboardService != null) {
+            dashboardService.stop();
+            dashboardService = null;
+        }
         if (autoBackupTask != null) autoBackupTask.cancel();
 
         if (!getConfig().getBoolean("server-stop.enabled"))
@@ -1439,13 +1446,9 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         if (channel != null) channel.sendMessageEmbeds(new EmbedBuilder().setTitle("📋 " + title).setDescription(detail).setTimestamp(Instant.now()).setColor(getEmbedColor("embeds.info-color", "#5865F2")).build()).queue();
     }
 
-    private void scheduleStatusDashboard() {
-        if (!getConfig().getBoolean("status-dashboard.enabled", false)) return;
-        long minutes = Math.max(1, getConfig().getLong("status-dashboard.interval-minutes", 10));
-        statusDashboardTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::updateStatusDashboard, 40L, minutes * 60L * 20L);
-    }
+    private void scheduleStatusDashboard() { if (dashboardService != null) dashboardService.start(); }
 
-    private void updateStatusDashboard() {
+    public void refreshDashboard() {
         String channelId = getConfig().getString("status-dashboard.channel-id", "");
         JDA jda = DiscordSRV.getPlugin().getJda();
         TextChannel channel = jda == null || !channelId.matches("\\d{17,20}") ? null : jda.getTextChannelById(channelId);
