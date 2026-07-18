@@ -117,6 +117,10 @@ changelog:
     - version: "1.9.0"
       changes:
         - "Added persistent changelog message editing, owner-only purge and prefix commands, and case-insensitive offline player lookup."
+    - version: "1.10.0"
+      changes:
+        - "Added modular configuration, scheduler, storage, dashboard, Discord transport, verification, suggestions, reports, and command-routing services."
+        - "Added configurable automation triggers, conditions, cooldowns, and independently registered actions."
 
 audit-log:
   enabled: true

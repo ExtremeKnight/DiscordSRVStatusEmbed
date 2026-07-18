@@ -1,5 +1,5 @@
 name: DiscordSRVStatusEmbed
-version: 1.9.0
+version: 1.10.0
 main: me.example.statusembed.StatusEmbed
 api-version: '1.21'
 depend:

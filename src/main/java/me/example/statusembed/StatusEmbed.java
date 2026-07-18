@@ -8,6 +8,7 @@ import me.example.statusembed.storage.NotesRepository;
 import me.example.statusembed.verification.VerificationService;
 import me.example.statusembed.dashboard.DashboardService;
 import me.example.statusembed.reports.ReportStateStore;
+import me.example.statusembed.suggestions.SuggestionService;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -91,6 +92,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private final Map<String, Long> discordCommandCooldowns = new ConcurrentHashMap<>();
     private NotesRepository notesRepository;
     private VerificationService verificationService;
+    private SuggestionService suggestionService;
     private DashboardService dashboardService;
 
     @Override
@@ -121,6 +123,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         Bukkit.getPluginManager().registerEvents(automationManager, this);
         notesRepository = new NotesRepository(this);
         verificationService = new VerificationService(this);
+        suggestionService = new SuggestionService(this);
         dashboardService = new DashboardService(this);
         verifyRegisteredCommands();
         DiscordSRV.api.subscribe(this);
@@ -206,6 +209,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         auditLogService = null;
         notesRepository = null;
         verificationService = null;
+        suggestionService = null;
         DiscordSRV.api.unsubscribe(this);
 
         if (logPurgeTask != null) {
@@ -744,7 +748,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             return;
         }
         final String submittedSuggestion = suggestion;
-        String channelId = getConfig().getString("suggestions.channel-id", "");
+        String channelId = suggestionService == null ? getConfig().getString("suggestions.channel-id", "") : suggestionService.channelId();
         JDA jda = DiscordSRV.getPlugin().getJda();
         TextChannel target = null;
         if (jda != null && channelId.matches("\\d{17,20}")) {
