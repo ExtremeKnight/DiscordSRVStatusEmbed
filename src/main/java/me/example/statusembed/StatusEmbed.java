@@ -5,6 +5,7 @@ import me.example.statusembed.config.ConfigService;
 import me.example.statusembed.scheduler.SchedulerService;
 import me.example.statusembed.storage.AuditLogService;
 import me.example.statusembed.storage.NotesRepository;
+import me.example.statusembed.verification.VerificationService;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
@@ -90,6 +91,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
     private final Map<java.util.UUID, Long> reportStateStarted = new HashMap<>();
     private final Map<String, Long> discordCommandCooldowns = new ConcurrentHashMap<>();
     private NotesRepository notesRepository;
+    private VerificationService verificationService;
 
     @Override
     public void onEnable() {
@@ -118,6 +120,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         automationManager.load();
         Bukkit.getPluginManager().registerEvents(automationManager, this);
         notesRepository = new NotesRepository(this);
+        verificationService = new VerificationService(this);
         verifyRegisteredCommands();
         DiscordSRV.api.subscribe(this);
 
@@ -201,6 +204,7 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
         }
         auditLogService = null;
         notesRepository = null;
+        verificationService = null;
         DiscordSRV.api.unsubscribe(this);
 
         if (logPurgeTask != null) {
@@ -943,7 +947,11 @@ public class StatusEmbed extends JavaPlugin implements Listener, SlashCommandPro
             return;
         }
         event.deferReply(true).setContent("Verification complete — the Minecraft role has been assigned.").queue();
-        event.getGuild().addRoleToMember(event.getMember(), role).queue(success -> audit("VERIFY user=" + event.getUser().getId()), failure -> getLogger().warning("Could not assign Minecraft role: " + failure.getMessage()));
+        if (verificationService != null && verificationService.assignRole(DiscordSRV.getPlugin().getJda(), event.getGuild().getId(), event.getUser().getId())) {
+            audit("VERIFY user=" + event.getUser().getId());
+        } else {
+            getLogger().warning("Could not assign Minecraft role through VerificationService.");
+        }
     }
 
     // Bukkit's player list can only be safely read on the main server thread,

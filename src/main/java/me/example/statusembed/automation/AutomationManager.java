@@ -23,6 +23,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import me.example.statusembed.StatusEmbed;
+import me.example.statusembed.discord.DiscordTransport;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -49,11 +50,13 @@ public final class AutomationManager implements Listener {
     private final Map<String, Runnable> customActions = new ConcurrentHashMap<>();
     private final List<BukkitTask> scheduledTasks = new ArrayList<>();
     private final AutomationExecutor executor;
+    private final DiscordTransport discordTransport;
 
     public AutomationManager(StatusEmbed plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.logger = plugin.getLogger();
         this.executor = new AutomationExecutor(logger, actions);
+        this.discordTransport = new DiscordTransport(plugin);
         registerBuiltInActions();
     }
 
@@ -172,12 +175,12 @@ public final class AutomationManager implements Listener {
     }
 
     private void sendDiscordMessage(AutomationContext context, Automation.ActionDefinition definition) {
-        MessageChannel channel = channel(context.jda(), context.plugin(), value(definition, "channel"));
+        MessageChannel channel = discordTransport.resolve(context.jda(), "automation-channels", value(definition, "channel"));
         if (channel != null) channel.sendMessage(context.replace(value(definition, "message"))).queue();
     }
 
     private void sendDiscordEmbed(AutomationContext context, Automation.ActionDefinition definition) {
-        MessageChannel channel = channel(context.jda(), context.plugin(), value(definition, "channel"));
+        MessageChannel channel = discordTransport.resolve(context.jda(), "automation-channels", value(definition, "channel"));
         if (channel == null) return;
         EmbedBuilder embed = new EmbedBuilder().setTitle(context.replace(value(definition, "title"))).setDescription(context.replace(value(definition, "description")));
         channel.sendMessageEmbeds(embed.build()).queue();
@@ -196,12 +199,6 @@ public final class AutomationManager implements Listener {
         }
         if (add) guild.addRoleToMember(userId, role).queue();
         else guild.removeRoleFromMember(userId, role).queue();
-    }
-
-    private MessageChannel channel(JDA jda, StatusEmbed plugin, String key) {
-        if (jda == null || key.isBlank()) return null;
-        String id = key.matches("\\d{17,20}") ? key : plugin.getConfig().getString("automation-channels." + key, key);
-        return id.matches("\\d{17,20}") ? jda.getTextChannelById(id) : null;
     }
 
     private String value(Automation.ActionDefinition definition, String key) { return String.valueOf(definition.values().getOrDefault(key, "")); }
