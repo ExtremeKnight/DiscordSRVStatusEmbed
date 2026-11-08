@@ -1,58 +1,121 @@
-name: DiscordSRVStatusEmbed
-version: 1.12.0
-main: me.example.statusembed.StatusEmbed
+name: ExeNovaLink
+version: '${project.version}'
+main: com.exenova.link.ExeNovaLink
 api-version: '1.21'
-depend:
+description: All-in-one Discord and Minecraft integration for ExeSMP, by ExeNova.
+authors: [ExeNova]
+# Paper downloads these from Maven Central into this plugin's own classloader
+# on first start (keep in sync with pom.xml). Offline hosts: see README.
+libraries:
+  - net.dv8tion:JDA:5.6.1
+# Everything below is optional: each integration switches on only if that
+# plugin is installed. Loading after them lets us hook their APIs on enable.
+# Any other plugin's data can be shown through PlaceholderAPI placeholders.
+softdepend:
   - DiscordSRV
+  - PlaceholderAPI
+  - LuckPerms
+  - Essentials
+  - CMI
+  - SuperVanish
+  - PremiumVanish
+  - Geyser-Spigot
+  - floodgate
+  - LiteBans
+  - AdvancedBan
+  - Votifier
 commands:
-  discordstatusreload:
-    description: Reloads the DiscordSRVStatusEmbed configuration
-    usage: /discordstatusreload
-    permission: discordstatus.reload
+  exenova:
+    description: ExeNovaLink admin commands
+    usage: /exenova <reload|status|diagnostics|config|backup|restore|integrations>
+    aliases: [exn, exenovalink]
+  link:
+    description: Link your Minecraft account to Discord
+    usage: /link [code]
+    aliases: [discordlink]
+    permission: exenova.link
+  unlink:
+    description: Unlink your Minecraft account from Discord
+    usage: /unlink
+    aliases: [discordunlink]
+    permission: exenova.link
+  discord:
+    description: Show the Discord invite and your link status
+    usage: /discord
   dsreport:
     description: Open the player reporting menu
     usage: /dsreport [player]
+    aliases: [exreport]
   dsnote:
     description: Manage private staff notes for a player
     usage: /dsnote <add|list|clear> <player> [note]
-    permission: discordstatus.notes
+    aliases: [exnote]
   dswatch:
     description: Manage the watchlist
     usage: /dswatch <add|remove|list> [player]
-    permission: discordstatus.watchlist
+    aliases: [exwatch]
+  # Legacy command names from DiscordSRVStatusEmbed, kept so existing habits,
+  # scripts and command blocks keep working. They map onto /exenova.
+  discordstatusreload:
+    description: Legacy alias of /exenova reload
+    usage: /discordstatusreload
   discordstatusdiagnostics:
-    description: Show plugin and Discord configuration diagnostics
+    description: Legacy alias of /exenova diagnostics
     usage: /discordstatusdiagnostics
-    permission: discordstatus.config
     aliases: [dsdiag]
   discordstatusconfig:
-    description: Open the in-game configuration menu
+    description: Legacy alias of /exenova config
     usage: /discordstatusconfig
-    permission: discordstatus.config
     aliases: [dscfg]
   discordstatusbackup:
-    description: Back up the plugin configuration
+    description: Legacy alias of /exenova backup
     usage: /discordstatusbackup
-    permission: discordstatus.config
     aliases: [dsbackup]
   discordstatusrestore:
-    description: Restore a plugin configuration backup
+    description: Legacy alias of /exenova restore
     usage: /discordstatusrestore <backup-file.yml>
-    permission: discordstatus.config
     aliases: [dsrestore]
 permissions:
-  discordstatus.reload:
-    description: Allows reloading the DiscordSRVStatusEmbed configuration
+  exenova.*:
+    description: All ExeNovaLink permissions
     default: op
-  discordstatus.reports.notify:
-    description: Receives in-game notifications for submitted reports
+    children:
+      exenova.reload: true
+      exenova.config: true
+      exenova.notes: true
+      exenova.watchlist: true
+      exenova.reports.notify: true
+      exenova.link: true
+      exenova.bridge.bypass-filter: true
+  exenova.reload:
+    description: Reload ExeNovaLink
+    default: op
+  exenova.config:
+    description: Configuration menu, diagnostics, backup and restore
+    default: op
+  exenova.notes:
+    description: Manage staff notes
+    default: op
+  exenova.watchlist:
+    description: Manage the watchlist and receive its alerts
+    default: op
+  exenova.reports.notify:
+    description: Receive in-game report notifications
+    default: op
+  exenova.link:
+    description: Link a Minecraft account to Discord
+    default: true
+  exenova.bridge.bypass-filter:
+    description: Chat sent to Discord skips the word filter
+    default: op
+  # Old permission nodes still grant the same access (checked alongside exenova.*).
+  discordstatus.reload:
     default: op
   discordstatus.config:
-    description: Allows configuration, backup, and restore actions
     default: op
   discordstatus.notes:
-    description: Allows staff-note management
     default: op
   discordstatus.watchlist:
-    description: Allows watchlist management and notifications
+    default: op
+  discordstatus.reports.notify:
     default: op
