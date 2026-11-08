@@ -51,6 +51,13 @@
                 <artifactId>jackson-databind</artifactId>
                 <version>2.18.11</version>
             </dependency>
+            <!-- Compile-only (Paper supplies log4j at runtime); kept on a
+                 release with no open advisories for the dependency review. -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>2.25.5</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -88,7 +95,7 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.24.1</version>
+            <version>2.25.5</version>
             <scope>provided</scope>
         </dependency>
 
