@@ -8,6 +8,9 @@ authors: [ExeNova]
 # on first start (keep in sync with pom.xml). Offline hosts: see README.
 libraries:
   - net.dv8tion:JDA:5.6.1
+  # Patched over JDA's transitive 2.18.3 (security advisories); keep in sync with pom.xml.
+  - com.fasterxml.jackson.core:jackson-core:2.18.11
+  - com.fasterxml.jackson.core:jackson-databind:2.18.11
 # Everything below is optional: each integration switches on only if that
 # plugin is installed. Loading after them lets us hook their APIs on enable.
 # Any other plugin's data can be shown through PlaceholderAPI placeholders.
