@@ -185,10 +185,15 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
         String text = message.getContentDisplay();
         String prefix = plugin.getConfig().getString("server-info.prefix", "!");
         if (plugin.getConfig().getBoolean("bridge.ignore-prefix-commands", true) && prefix != null && !prefix.isEmpty() && text.startsWith(prefix)) return;
-        if (!message.getAttachments().isEmpty()) {
+        boolean clickablePreviews = plugin.getConfig().getBoolean("bridge.attachment-previews", true);
+        if (!message.getAttachments().isEmpty() && !clickablePreviews) {
+            // Fallback when previews are off: inline the file names as plain text.
             text = (text + " " + String.join(" ", message.getAttachments().stream().map(a -> "[" + a.getFileName() + "]").toList())).trim();
         }
         if (!message.getStickers().isEmpty()) text = (text + " [sticker]").trim();
+        if (clickablePreviews && !message.getAttachments().isEmpty()) {
+            broadcastAttachmentPreviews(message.getAttachments());
+        }
         if (text.isBlank()) return;
         text = truncate(filter(stripColors(text.replace('\n', ' '))), plugin.getConfig().getInt("bridge.max-discord-message-length", 256));
 
@@ -213,6 +218,21 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
 
     private static TextReplacementConfig literal(String token, String value) {
         return TextReplacementConfig.builder().matchLiteral(token).replacement(Component.text(value)).build();
+    }
+
+    /** Broadcasts one clickable "[image: name]" line per attachment (click opens the URL). */
+    private void broadcastAttachmentPreviews(List<Message.Attachment> attachments) {
+        String prefix = plugin.getConfig().getString("bridge.formats.attachment-prefix", "&9[Discord] &7shared ");
+        for (Message.Attachment attachment : attachments) {
+            String label = AttachmentPreview.label(attachment.getFileName(), attachment.isImage());
+            String url = attachment.getUrl();
+            Component line = LegacyComponentSerializer.legacyAmpersand().deserialize(prefix)
+                    .append(Component.text(label, net.kyori.adventure.text.format.NamedTextColor.AQUA)
+                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url))
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                    Component.text("Click to open " + attachment.getFileName()))));
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().broadcast(line));
+        }
     }
 
     // ---- helpers ---------------------------------------------------------

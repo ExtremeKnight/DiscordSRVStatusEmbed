@@ -98,6 +98,7 @@ bridge:
     # & colour codes allowed. {name} {role} {reply} {message}
     discord-to-minecraft: "&9[Discord] &b{name}&8 » &f{reply}{message}"
     reply-prefix: "&8(reply to {name}) "
+    attachment-prefix: "&9[Discord] &7shared "
   messages:
     join: "**{player}** joined the server"
     first-join-suffix: "for the first time! 🎉"
@@ -115,6 +116,9 @@ bridge:
   # Strip Discord invites / all URLs from messages relayed to Discord.
   block-invites: true
   block-links: false
+  # Show Discord image/gif/file attachments in game as a clickable [image: name]
+  # that opens the link (no in-game rendering). Off = inline the file names as text.
+  attachment-previews: true
 
 # Optional in-game chat formatter (Adventure MiniMessage). OFF by default so it
 # never clashes with EssentialsX chat or another formatter. The format template
