@@ -45,6 +45,25 @@ commands:
   discord:
     description: Show the Discord invite and your link status
     usage: /discord
+  msg:
+    description: Send a private message
+    usage: /msg <player> <message>
+    aliases: [m, tell, w, whisper, pm]
+    permission: exenova.msg
+  reply:
+    description: Reply to your last private message
+    usage: /reply <message>
+    aliases: [r]
+    permission: exenova.msg
+  ignore:
+    description: Toggle ignoring a player's private messages
+    usage: /ignore <player>
+    permission: exenova.msg
+  socialspy:
+    description: Watch other players' private messages
+    usage: /socialspy
+    aliases: [spy]
+    permission: exenova.socialspy
   dsreport:
     description: Open the player reporting menu
     usage: /dsreport [player]
@@ -110,6 +129,12 @@ permissions:
     default: true
   exenova.bridge.bypass-filter:
     description: Chat sent to Discord skips the word filter
+    default: op
+  exenova.msg:
+    description: Use private messages (/msg, /reply, /ignore)
+    default: true
+  exenova.socialspy:
+    description: Watch other players' private messages
     default: op
   # Old permission nodes still grant the same access (checked alongside exenova.*).
   discordstatus.reload:

@@ -112,6 +112,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private ChatBridge chatBridge;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.chat.pm.PrivateMessages privateMessages;
 
     @Override
     public void onEnable() {
@@ -149,9 +150,11 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         roleSync = new RoleSync(this);
         linkCommands = new LinkCommands(this);
         chatBridge = new ChatBridge(this);
+        privateMessages = new com.exenova.link.chat.pm.PrivateMessages(this);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
+        Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
         Bukkit.getPluginManager().registerEvents(new PunishmentWatcher(this), this);
 
@@ -460,6 +463,10 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command cmd, String label, String[] args) {
         switch (cmd.getName().toLowerCase(java.util.Locale.ROOT)) {
+            case "msg": return privateMessages.onMsg(sender, args);
+            case "reply": return privateMessages.onReply(sender, args);
+            case "ignore": return privateMessages.onIgnore(sender, args);
+            case "socialspy": return privateMessages.onSocialSpy(sender, args);
             case "link": return linkCommands.onLinkCommand(sender, args);
             case "unlink": return linkCommands.onUnlinkCommand(sender);
             case "discord": return linkCommands.onDiscordCommand(sender);
@@ -510,6 +517,9 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
             return java.util.Collections.emptyList();
         }
         switch (name) {
+            case "msg":
+            case "ignore":
+                return args.length == 1 ? onlinePlayerNames(sender, args[0]) : java.util.Collections.emptyList();
             case "dsreport":
                 return args.length == 1 ? onlinePlayerNames(sender, args[0]) : java.util.Collections.emptyList();
             case "dsnote":
