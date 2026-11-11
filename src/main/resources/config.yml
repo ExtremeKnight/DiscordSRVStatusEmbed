@@ -184,6 +184,15 @@ mentions:
   message: "&e{player} mentioned you in chat"
   title: false
 
+# Image maps: /exenova image <url> renders a Discord/web image (png/jpg/gif,
+# animated) onto a map item given to you. Showing images in chat to everyone
+# without an item needs client-side map packets and is a separate follow-up.
+images:
+  enabled: false
+  max-bytes: 8000000
+  gif-max-frames: 40
+  gif-fps: 10
+
 # Server watchdog: posts a staff alert when TPS/RAM/CPU cross a threshold, and
 # again when the server recovers. Only transitions are posted (no spam).
 watchdog:
