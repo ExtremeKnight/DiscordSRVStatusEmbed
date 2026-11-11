@@ -111,6 +111,9 @@ permissions:
   exenova.bridge.bypass-filter:
     description: Chat sent to Discord skips the word filter
     default: op
+  exenova.chat.color:
+    description: Use colour codes in your own chat messages (when the formatter allows it)
+    default: op
   # Old permission nodes still grant the same access (checked alongside exenova.*).
   discordstatus.reload:
     default: op
