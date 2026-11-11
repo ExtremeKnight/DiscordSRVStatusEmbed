@@ -112,6 +112,26 @@ bridge:
   # Words replaced with *** in both directions (players with
   # exenova.bridge.bypass-filter skip it for Minecraft -> Discord).
   filtered-words: []
+  # Strip Discord invites / all URLs from messages relayed to Discord.
+  block-invites: true
+  block-links: false
+
+# Optional in-game chat formatter (Adventure MiniMessage). OFF by default so it
+# never clashes with EssentialsX chat or another formatter. The format template
+# is trusted and fully parsed; the player's own message is inserted literally,
+# so players cannot inject click/hover/colour tags unless allow-player-color is
+# on and they have exenova.chat.color (even then, only colours - never clicks).
+chat:
+  formatter:
+    enabled: false
+    # {player} and {message} (or <player>/<message>). PlaceholderAPI works here.
+    default-format: "<gray>{player}</gray> <dark_gray>»</dark_gray> <white>{message}</white>"
+    # Per-group formats, chosen by the exenova.chat.group.<key> permission.
+    group-formats:
+      admin: "<red>[Admin]</red> <white>{player}</white> <dark_gray>»</dark_gray> <white>{message}</white>"
+    allow-player-color: false
+    block-invites: true
+    filtered-words: []
 
 # Minecraft <-> Discord account linking (/link in game or in Discord, or DM the bot the code).
 linking:

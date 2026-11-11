@@ -110,6 +110,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private LinkCommands linkCommands;
     private RoleSync roleSync;
     private ChatBridge chatBridge;
+    private com.exenova.link.chat.ChatFormatter chatFormatter;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
 
@@ -152,10 +153,13 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         roleSync = new RoleSync(this);
         linkCommands = new LinkCommands(this);
         chatBridge = new ChatBridge(this);
+        chatFormatter = new com.exenova.link.chat.ChatFormatter(this);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
+        Bukkit.getPluginManager().registerEvents(chatFormatter, this);
+        if (chatFormatter.enabled()) getLogger().info("In-game chat formatter is enabled.");
         Bukkit.getPluginManager().registerEvents(new PunishmentWatcher(this), this);
 
         discordBot = new DiscordBot(this);
@@ -335,6 +339,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (consoleChannel != null) consoleChannel.stop();
         if (chatBridge != null && isDiscordReady()) chatBridge.sendServerNotice(false, true);
         if (chatBridge != null) chatBridge.unregister();
+        if (chatFormatter != null) chatFormatter.unregister();
         if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
