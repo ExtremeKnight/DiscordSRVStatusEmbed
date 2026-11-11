@@ -114,6 +114,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private com.exenova.link.chat.channel.ChatChannels chatChannels;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.chat.MentionListener mentionListener;
     private com.exenova.link.watchdog.Watchdog watchdog;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
 
@@ -161,12 +162,14 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         chatFormatter = new com.exenova.link.chat.ChatFormatter(this, chatChannels);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
+        mentionListener = new com.exenova.link.chat.MentionListener(this);
         watchdog = new com.exenova.link.watchdog.Watchdog(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
         Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
         Bukkit.getPluginManager().registerEvents(chatFormatter, this);
         Bukkit.getPluginManager().registerEvents(chatChannels, this);
+        Bukkit.getPluginManager().registerEvents(mentionListener, this);
         if (chatFormatter.enabled()) getLogger().info("In-game chat formatter is enabled.");
         Bukkit.getPluginManager().registerEvents(new PunishmentWatcher(this), this);
 
@@ -360,6 +363,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (chatBridge != null) chatBridge.unregister();
         if (chatFormatter != null) chatFormatter.unregister();
         if (chatChannels != null) chatChannels.unregister();
+        if (mentionListener != null) mentionListener.unregister();
         if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
