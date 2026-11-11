@@ -159,6 +159,22 @@ chat:
         permission: exenova.chat.staff
         auto-join: false
 
+# Server watchdog: posts a staff alert when TPS/RAM/CPU cross a threshold, and
+# again when the server recovers. Only transitions are posted (no spam).
+watchdog:
+  enabled: false
+  channel-id: ""
+  interval-seconds: 30
+  # Ping this role on warning/critical (optional).
+  mention-role-id: ""
+  announce-warnings: true
+  tps-warn: 18.0
+  tps-critical: 15.0
+  ram-warn-percent: 85
+  ram-critical-percent: 95
+  cpu-warn-percent: 85
+  cpu-critical-percent: 95
+
 # Private messages: /msg, /reply (/r), /ignore, /socialspy. Server-side only.
 # {sender} {target} {message} and & colour codes. Players' own colour codes in
 # the message body are stripped.
