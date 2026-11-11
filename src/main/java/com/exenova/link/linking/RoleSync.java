@@ -76,6 +76,24 @@ public final class RoleSync {
         }, failure -> { /* not in the guild */ }));
     }
 
+    /**
+     * Adds or removes the configured "online" Discord role as a linked player
+     * joins or leaves the server. No-op unless {@code linking.online-role-id}
+     * is set. Safe to call from any thread.
+     */
+    public void setOnlineRole(UUID uuid, boolean online) {
+        Guild guild = guild();
+        String roleId = plugin.getConfig().getString("linking.online-role-id", "");
+        String discordId = plugin.links().discordId(uuid).orElse(null);
+        if (guild == null || discordId == null || !roleId.matches("\\d{17,20}")) return;
+        Role role = guild.getRoleById(roleId);
+        if (role == null || !guild.getSelfMember().canInteract(role)) return;
+        guild.retrieveMemberById(discordId).queue(member -> {
+            if (online) guild.addRoleToMember(member, role).queue(null, ignored -> { });
+            else guild.removeRoleFromMember(member, role).queue(null, ignored -> { });
+        }, ignored -> { });
+    }
+
     /** Removes synced roles after an unlink. */
     public void clear(String discordId) {
         Guild guild = guild();
@@ -83,6 +101,8 @@ public final class RoleSync {
         Set<String> ids = new HashSet<>();
         String linked = plugin.getConfig().getString("linking.linked-role-id", "");
         if (linked.matches("\\d{17,20}")) ids.add(linked);
+        String onlineRole = plugin.getConfig().getString("linking.online-role-id", "");
+        if (onlineRole.matches("\\d{17,20}")) ids.add(onlineRole);
         ConfigurationSection mapping = plugin.getConfig().getConfigurationSection("role-sync.groups");
         if (mapping != null) mapping.getValues(false).values().forEach(value -> ids.add(String.valueOf(value)));
         guild.retrieveMemberById(discordId).queue(member -> {

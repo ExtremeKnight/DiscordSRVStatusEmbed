@@ -189,6 +189,9 @@ linking:
   bypass-players: []
   # Role given to everyone who links.
   linked-role-id: ""
+  # Role held only while the linked player is online in-game (bot needs Manage Roles,
+  # and the role must sit below the bot's top role). Empty = disabled.
+  online-role-id: ""
   # Rename linked members in Discord (bot needs Manage Nicknames).
   sync-nicknames: false
   nickname-format: "{player}"
