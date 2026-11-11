@@ -266,6 +266,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     public LinkManager links() { return linkManager; }
     public RoleSync roleSync() { return roleSync; }
     public AutomationManager automations() { return automationManager; }
+    public com.exenova.link.chat.channel.ChatChannels chatChannels() { return chatChannels; }
 
     /** True if {@code subject} has {@code exenova.<node>} or the legacy {@code discordstatus.<node>}. */
     public static boolean can(Permissible subject, String node) {

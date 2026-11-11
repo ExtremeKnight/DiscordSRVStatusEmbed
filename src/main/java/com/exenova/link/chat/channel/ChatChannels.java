@@ -1,6 +1,7 @@
 package com.exenova.link.chat.channel;
 
 import com.exenova.link.ExeNovaLink;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -44,17 +45,39 @@ public final class ChatChannels implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) { membership.clear(event.getPlayer().getUniqueId()); }
 
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        if (enabled()) membership.joinDefaults(event.getPlayer().getUniqueId(), registry, event.getPlayer());
+    }
+
+    public ChannelMembership membership() { return membership; }
+
     /** The channel a player is currently talking in (never null when enabled). */
     public Channel active(Player player) { return membership.active(player.getUniqueId(), registry); }
 
-    /** Removes viewers who shouldn't receive {@code player}'s message in {@code channel} (local radius). */
+    /** Online players who receive {@code channel}: subscribed, permitted, and (for local) within radius of {@code origin}. */
+    public java.util.List<Player> subscribers(Channel channel, Player origin) {
+        java.util.List<Player> out = new java.util.ArrayList<>();
+        long radiusSq = (long) channel.radius() * channel.radius();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!channel.usableBy(player) || !membership.isSubscribed(player.getUniqueId(), channel)) continue;
+            if (channel.isLocal() && origin != null) {
+                if (!player.getWorld().equals(origin.getWorld()) || player.getLocation().distanceSquared(origin.getLocation()) > radiusSq) continue;
+            }
+            out.add(player);
+        }
+        return out;
+    }
+
+    /** Removes viewers who shouldn't receive {@code player}'s message in {@code channel} (subscription, permission, local radius). */
     public void filterRecipients(Player player, Channel channel, java.util.Set<net.kyori.adventure.audience.Audience> viewers) {
-        if (!channel.isLocal()) return;
         Location origin = player.getLocation();
         long radiusSq = (long) channel.radius() * channel.radius();
         viewers.removeIf(viewer -> {
-            if (!(viewer instanceof Player other)) return !player.hasPermission("exenova.chat.channel." + channel.name());
+            if (!(viewer instanceof Player other)) return true; // console etc. don't belong to a channel
             if (other.equals(player)) return false;
+            if (!channel.usableBy(other) || !membership.isSubscribed(other.getUniqueId(), channel)) return true;
+            if (!channel.isLocal()) return false;
             if (!other.getWorld().equals(origin.getWorld())) return true;
             return other.getLocation().distanceSquared(origin) > radiusSq;
         });
@@ -69,11 +92,21 @@ public final class ChatChannels implements Listener {
             sender.sendMessage("§7Talking in: §f" + active(player).name());
             return true;
         }
-        Channel channel = registry.resolve(args[0]).orElse(null);
-        if (channel == null) { sender.sendMessage("§cUnknown channel: " + args[0]); return true; }
+        boolean join = args[0].equalsIgnoreCase("join");
+        boolean leave = args[0].equalsIgnoreCase("leave");
+        String target = (join || leave) && args.length > 1 ? args[1] : args[0];
+        Channel channel = registry.resolve(target).orElse(null);
+        if (channel == null) { sender.sendMessage("§cUnknown channel: " + target); return true; }
         if (!channel.usableBy(player)) { sender.sendMessage("§cYou don't have access to that channel."); return true; }
+        if (leave) {
+            if (channel.equals(registry.defaultChannel())) { sender.sendMessage("§cYou can't leave the default channel."); return true; }
+            membership.unsubscribe(player.getUniqueId(), channel);
+            sender.sendMessage("§aLeft §f" + channel.name() + "§a. You'll no longer receive it.");
+            return true;
+        }
+        // join or bare name: subscribe and focus.
         membership.setFocus(player.getUniqueId(), channel);
-        sender.sendMessage("§aNow talking in §f" + channel.name() + "§a.");
+        sender.sendMessage((join ? "§aJoined and now talking in §f" : "§aNow talking in §f") + channel.name() + "§a.");
         return true;
     }
 

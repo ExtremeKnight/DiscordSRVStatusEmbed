@@ -55,6 +55,12 @@ public final class ChannelRegistry {
         return byName.values().stream().filter(channel -> channel.matches(query)).findFirst();
     }
 
+    /** The channel bridged to a given Discord channel ID, if any. */
+    public Optional<Channel> byDiscordChannel(String discordChannelId) {
+        if (discordChannelId == null || discordChannelId.isBlank()) return Optional.empty();
+        return byName.values().stream().filter(channel -> discordChannelId.equals(channel.discordChannelId())).findFirst();
+    }
+
     public Channel defaultChannel() {
         Channel byConfig = byName.get(defaultChannel);
         return byConfig != null ? byConfig : byName.values().iterator().next();

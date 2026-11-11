@@ -94,6 +94,23 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
         if (!player.hasPermission("exenova.bridge.bypass-filter")) message = filter(message);
         message = plugin.applyEmoji(player, message);
         if (message.isBlank()) return;
+
+        // Per-channel routing: if the player's active channel bridges to its own
+        // Discord channel, send there (as a bot message) instead of the default.
+        var channels = plugin.chatChannels();
+        if (channels != null && channels.enabled()) {
+            String channelDiscordId = channels.active(player).discordChannelId();
+            if (channelDiscordId.matches("\\d{17,20}") && !channelDiscordId.equals(channelId())) {
+                TextChannel target = plugin.jda() == null ? null : plugin.jda().getTextChannelById(channelDiscordId);
+                if (target != null) {
+                    String line = plugin.integrations().placeholders(player,
+                            plugin.getConfig().getString("bridge.formats.minecraft-to-discord", "**{player}** » {message}"))
+                            .replace("{player}", escape(player.getName()));
+                    target.sendMessage(truncate(stripColors(line).replace("{message}", escape(message)), 2000)).queue();
+                    return;
+                }
+            }
+        }
         sendAsPlayer(player, message);
     }
 
@@ -180,13 +197,21 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        if (!enabled() || !event.isFromGuild() || !event.getChannel().getId().equals(channelId())) return;
+        if (!enabled() || !event.isFromGuild()) return;
+        String incomingId = event.getChannel().getId();
+        boolean isDefault = incomingId.equals(channelId());
+        // A message may come from the default bridge channel or from a channel
+        // mapped to a specific in-game channel.
+        var channels = plugin.chatChannels();
+        com.exenova.link.chat.channel.Channel gameChannel = channels != null && channels.enabled()
+                ? channels.registry().byDiscordChannel(incomingId).orElse(null) : null;
+        if (!isDefault && gameChannel == null) return;
         if (event.getAuthor().isBot() || event.isWebhookMessage() || event.getAuthor().isSystem()) return;
         Message message = event.getMessage();
         String text = message.getContentDisplay();
         String prefix = plugin.getConfig().getString("server-info.prefix", "!");
         if (plugin.getConfig().getBoolean("bridge.ignore-prefix-commands", true) && prefix != null && !prefix.isEmpty() && text.startsWith(prefix)) return;
-        boolean clickablePreviews = plugin.getConfig().getBoolean("bridge.attachment-previews", true);
+        boolean clickablePreviews = isDefault && plugin.getConfig().getBoolean("bridge.attachment-previews", true);
         if (!message.getAttachments().isEmpty() && !clickablePreviews) {
             // Fallback when previews are off: inline the file names as plain text.
             text = (text + " " + String.join(" ", message.getAttachments().stream().map(a -> "[" + a.getFileName() + "]").toList())).trim();
@@ -214,7 +239,15 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
                 .replaceText(literal("{name}", stripColors(name)))
                 .replaceText(literal("{role}", stripColors(role)))
                 .replaceText(literal("{message}", text));
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().broadcast(line));
+        com.exenova.link.chat.channel.Channel deliverTo = gameChannel;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (deliverTo != null) {
+                // Deliver only to the in-game channel's online subscribers.
+                for (Player subscriber : channels.subscribers(deliverTo, null)) subscriber.sendMessage(line);
+            } else {
+                Bukkit.getServer().broadcast(line);
+            }
+        });
     }
 
     private static TextReplacementConfig literal(String token, String value) {
