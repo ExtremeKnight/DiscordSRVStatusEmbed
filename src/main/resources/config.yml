@@ -133,6 +133,16 @@ chat:
     block-invites: true
     filtered-words: []
 
+# Private messages: /msg, /reply (/r), /ignore, /socialspy. Server-side only.
+# {sender} {target} {message} and & colour codes. Players' own colour codes in
+# the message body are stripped.
+private-messages:
+  enabled: true
+  sound: true
+  format-to: "&7[&fyou &7-> &f{target}&7] &f{message}"
+  format-from: "&7[&f{sender} &7-> &fyou&7] &f{message}"
+  format-spy: "&8[spy] &7{sender} -> {target}: &8{message}"
+
 # Minecraft <-> Discord account linking (/link in game or in Discord, or DM the bot the code).
 linking:
   enabled: true
