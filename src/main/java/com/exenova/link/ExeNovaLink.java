@@ -114,6 +114,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private com.exenova.link.chat.channel.ChatChannels chatChannels;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.image.ImageMaps imageMaps;
     private com.exenova.link.chat.MentionListener mentionListener;
     private com.exenova.link.watchdog.Watchdog watchdog;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
@@ -162,6 +163,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         chatFormatter = new com.exenova.link.chat.ChatFormatter(this, chatChannels);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
+        imageMaps = new com.exenova.link.image.ImageMaps(this);
         mentionListener = new com.exenova.link.chat.MentionListener(this);
         watchdog = new com.exenova.link.watchdog.Watchdog(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
@@ -518,12 +520,19 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
             sender.sendMessage("§6Active integrations: §f" + (integrations.activeNames().isEmpty() ? "none" : String.join(", ", integrations.activeNames())));
             return true;
         }
+        if (sub.equals("image")) {
+            if (!(sender instanceof Player player)) { sender.sendMessage("This command can only be used in-game."); return true; }
+            if (!can(sender, "config")) { sender.sendMessage("§cYou do not have permission to do that."); return true; }
+            if (rest.length != 1) { sender.sendMessage("§eUsage: /" + label + " image <url>"); return true; }
+            imageMaps.giveFromUrl(player, rest[0]);
+            return true;
+        }
         if (sub.equals("status")) {
             sender.sendMessage("§9§lExeNovaLink §7v" + getPluginMeta().getVersion() + " §8• §7by ExeNova");
             sender.sendMessage("§7Discord bot: " + (isDiscordReady() ? "§aonline as " + jda().getSelfUser().getName() : discordBot != null && !discordBot.token().isEmpty() ? "§econnecting / offline" : "§cno token set (discord.bot-token)"));
             sender.sendMessage("§7Linked accounts: §f" + linkManager.size() + " §8• §7Chat bridge: " + (getConfig().getBoolean("bridge.enabled") ? "§aon" : "§coff")
                     + " §8• §7Console: " + (getConfig().getBoolean("console.enabled") ? "§aon" : "§coff"));
-            if (can(sender, "config")) sender.sendMessage("§7Subcommands: §freload, diagnostics, config, backup, restore <file>, integrations");
+            if (can(sender, "config")) sender.sendMessage("§7Subcommands: §freload, diagnostics, config, backup, restore <file>, integrations, image <url>");
             return true;
         }
         sender.sendMessage("§eUsage: /" + label + " <status|reload|diagnostics|config|backup|restore|integrations>");
@@ -539,7 +548,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (name.equals("exenova")) {
             if (args.length == 1) {
                 List<String> subs = new ArrayList<>(List.of("status"));
-                if (can(sender, "config")) subs.addAll(List.of("reload", "diagnostics", "config", "backup", "restore", "integrations"));
+                if (can(sender, "config")) subs.addAll(List.of("reload", "diagnostics", "config", "backup", "restore", "integrations", "image"));
                 return matching(subs, args[0]);
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("restore") && can(sender, "config") && backupService != null) {
