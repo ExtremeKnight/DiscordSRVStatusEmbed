@@ -114,6 +114,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private com.exenova.link.chat.channel.ChatChannels chatChannels;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.watchdog.Watchdog watchdog;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
 
     @Override
@@ -160,6 +161,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         chatFormatter = new com.exenova.link.chat.ChatFormatter(this, chatChannels);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
+        watchdog = new com.exenova.link.watchdog.Watchdog(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
         Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
@@ -202,6 +204,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         long roleSyncMinutes = Math.max(1, getConfig().getLong("role-sync.interval-minutes", 15));
         schedulerService.repeatAsync(20L * 60L, 20L * 60L * roleSyncMinutes, () -> { if (roleSync != null && isDiscordReady()) roleSync.syncOnline(); });
         schedulerService.repeatAsync(20L * 30L, channelStats.intervalTicks(), () -> { if (isDiscordReady()) channelStats.update(); });
+        if (watchdog.enabled()) schedulerService.repeatSync(watchdog.intervalTicks(), watchdog.intervalTicks(), watchdog::check);
     }
 
     private void stopBackgroundTasks() {
@@ -272,6 +275,15 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         String id = getConfig().getString(configPath, "");
         TextChannel channel = jda == null || !id.matches("\\d{17,20}") ? null : jda.getTextChannelById(id);
         if (channel != null) channel.sendMessageEmbeds(embed).queue(null,
+                failure -> getLogger().warning("Could not post to " + configPath + ": " + failure.getMessage()));
+    }
+
+    /** As {@link #postToChannel} but with leading message content (e.g. a role ping). */
+    public void postToChannelWithContent(String configPath, String content, MessageEmbed embed) {
+        JDA jda = jda();
+        String id = getConfig().getString(configPath, "");
+        TextChannel channel = jda == null || !id.matches("\\d{17,20}") ? null : jda.getTextChannelById(id);
+        if (channel != null) channel.sendMessage(content).addEmbeds(embed).queue(null,
                 failure -> getLogger().warning("Could not post to " + configPath + ": " + failure.getMessage()));
     }
 
