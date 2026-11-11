@@ -133,6 +133,32 @@ chat:
     block-invites: true
     filtered-words: []
 
+  # Chat channels (/channel <name>). OFF by default. When on, each player talks
+  # in one channel at a time; a channel's own format overrides formatter formats.
+  # radius > 0 makes a channel local (only players within that many blocks, same
+  # world, receive it). discord-channel-id optionally bridges a channel.
+  channels:
+    enabled: false
+    default-channel: global
+    channels:
+      global:
+        aliases: [g]
+        format: "<gray>{player}</gray> <dark_gray>»</dark_gray> <white>{message}</white>"
+        radius: 0
+        permission: ""
+        auto-join: true
+      local:
+        aliases: [l]
+        format: "<gray>[L] {player} » {message}</gray>"
+        radius: 100
+        auto-join: true
+      staff:
+        aliases: [sc, a]
+        format: "<red>[Staff]</red> <white>{player}</white> <dark_gray>»</dark_gray> <red>{message}</red>"
+        radius: 0
+        permission: exenova.chat.staff
+        auto-join: false
+
 # Minecraft <-> Discord account linking (/link in game or in Discord, or DM the bot the code).
 linking:
   enabled: true

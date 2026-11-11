@@ -39,11 +39,16 @@ public final class ChatFormatter implements Listener {
             .build();
 
     private final ExeNovaLink plugin;
+    private final com.exenova.link.chat.channel.ChatChannels channels;
 
-    public ChatFormatter(ExeNovaLink plugin) { this.plugin = plugin; }
+    public ChatFormatter(ExeNovaLink plugin, com.exenova.link.chat.channel.ChatChannels channels) {
+        this.plugin = plugin;
+        this.channels = channels;
+    }
 
     public boolean enabled() {
-        return plugin.getConfig().getBoolean("chat.formatter.enabled", false);
+        return plugin.getConfig().getBoolean("chat.formatter.enabled", false)
+                || (channels != null && channels.enabled());
     }
 
     public void unregister() { HandlerList.unregisterAll(this); }
@@ -63,9 +68,18 @@ public final class ChatFormatter implements Listener {
 
         boolean color = plugin.getConfig().getBoolean("chat.formatter.allow-player-color", false)
                 && player.hasPermission("exenova.chat.color");
+        // When channels are on, the active channel chooses the format and (for
+        // local channels) restricts who receives the message.
+        String template;
+        if (channels != null && channels.enabled()) {
+            com.exenova.link.chat.channel.Channel channel = channels.active(player);
+            template = channel.format();
+            channels.filterRecipients(player, channel, event.viewers());
+        } else {
+            template = formatFor(player);
+        }
         // PlaceholderAPI is applied to the template (trusted); the player's name
         // and message are inserted literally by render(), never parsed as tags.
-        String template = formatFor(player);
         String resolvedTemplate = plugin.integrations() == null ? template : plugin.integrations().placeholders(player, template);
         String finalMessage = message;
         event.renderer((source, displayName, msg, viewer) -> render(resolvedTemplate, player.getName(), finalMessage, color));
