@@ -47,6 +47,11 @@ commands:
     usage: /unlink
     aliases: [discordunlink]
     permission: exenova.link
+  channel:
+    description: Switch or list chat channels
+    usage: /channel [name|list]
+    aliases: [ch]
+    permission: exenova.chat.channel
   discord:
     description: Show the Discord invite and your link status
     usage: /discord
@@ -143,6 +148,12 @@ permissions:
     default: op
   exenova.chat.color:
     description: Use colour codes in your own chat messages (when the formatter allows it)
+    default: op
+  exenova.chat.channel:
+    description: Use chat channels
+    default: true
+  exenova.chat.staff:
+    description: Access the staff chat channel
     default: op
   # Old permission nodes still grant the same access (checked alongside exenova.*).
   discordstatus.reload:
