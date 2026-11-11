@@ -64,6 +64,7 @@ public final class ChatFormatter implements Listener {
         if (plugin.getConfig().getBoolean("chat.formatter.block-invites", true)) {
             message = TextFilter.stripInvites(message, "[link removed]");
         }
+        message = plugin.applyEmoji(player, message);
         if (message.isBlank()) { event.setCancelled(true); return; }
 
         boolean color = plugin.getConfig().getBoolean("chat.formatter.allow-player-color", false)
