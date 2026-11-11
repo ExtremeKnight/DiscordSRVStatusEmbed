@@ -149,6 +149,9 @@ permissions:
   exenova.chat.color:
     description: Use colour codes in your own chat messages (when the formatter allows it)
     default: op
+  exenova.chat.mention:
+    description: Notify players by @mentioning them in chat
+    default: true
   exenova.chat.channel:
     description: Use chat channels
     default: true

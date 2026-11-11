@@ -159,6 +159,13 @@ chat:
         permission: exenova.chat.staff
         auto-join: false
 
+# Notify players when @mentioned in chat (needs the exenova.chat.mention permission).
+mentions:
+  enabled: true
+  sound: ENTITY_EXPERIENCE_ORB_PICKUP
+  message: "&e{player} mentioned you in chat"
+  title: false
+
 # Private messages: /msg, /reply (/r), /ignore, /socialspy. Server-side only.
 # {sender} {target} {message} and & colour codes. Players' own colour codes in
 # the message body are stripped.
