@@ -33,6 +33,10 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        <repository>
+            <id>dmulloy2</id>
+            <url>https://repo.dmulloy2.net/repository/public/</url>
+        </repository>
     </repositories>
 
     <!-- JDA 5.6.1 pulls jackson 2.18.3, which has high-severity advisories
@@ -112,6 +116,16 @@
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.47.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Optional: enables the in-chat image/GIF map renderer (client-side map
+             packets). Compile-only; the plugin runs fine without ProtocolLib and
+             the feature simply stays off. -->
+        <dependency>
+            <groupId>com.comphenix.protocol</groupId>
+            <artifactId>ProtocolLib</artifactId>
+            <version>5.3.0</version>
             <scope>provided</scope>
         </dependency>
 

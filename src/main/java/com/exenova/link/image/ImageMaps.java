@@ -9,11 +9,6 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 
 import java.awt.image.BufferedImage;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 
 /**
@@ -24,7 +19,6 @@ import java.util.List;
  */
 public final class ImageMaps {
     private final ExeNovaLink plugin;
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     public ImageMaps(ExeNovaLink plugin) { this.plugin = plugin; }
 
@@ -70,13 +64,6 @@ public final class ImageMaps {
     }
 
     private byte[] download(String url) throws Exception {
-        long maxBytes = Math.max(1, plugin.getConfig().getLong("images.max-bytes", 8_000_000L));
-        HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "ExeNovaLink").GET().build();
-        HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() != 200) throw new Exception("HTTP " + response.statusCode());
-        byte[] body = response.body();
-        if (body.length > maxBytes) throw new Exception("image too large (" + body.length + " bytes)");
-        return body;
+        return ImageDownloader.download(url, plugin.getConfig().getLong("images.max-bytes", 8_000_000L));
     }
 }

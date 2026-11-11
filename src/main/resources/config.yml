@@ -192,6 +192,12 @@ images:
   max-bytes: 8000000
   gif-max-frames: 40
   gif-fps: 10
+  # EXPERIMENTAL: needs ProtocolLib. When on, clicking an image/GIF shared in the
+  # Discord bridge renders it on a map in your off-hand in-game (no item is given,
+  # your main hand is untouched), instead of opening the link in a browser.
+  in-chat:
+    enabled: false
+    duration-seconds: 12
 
 # Server watchdog: posts a staff alert when TPS/RAM/CPU cross a threshold, and
 # again when the server recovers. Only transitions are posted (no spam).
