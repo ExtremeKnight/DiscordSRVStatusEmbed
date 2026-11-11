@@ -4,6 +4,8 @@ Audit date: 2026-07-16
 Audited release metadata: 1.8.0  
 Primary implementation: `src/main/java/me/example/statusembed/StatusEmbed.java`
 
+> **Note (1.13.0 pass):** This audit is unmodified from 1.8.0 and predates several fixes now in `IMPROVEMENTS.md`'s "Completed in the 1.13.0 pass" section — notably, configuration migration (`ConfigService`) and the mojibake encoding issue mentioned below are both already resolved as of this pass, and are no longer accurate weaknesses. See `IMPROVEMENTS.md` for what's changed; this file is left as a historical snapshot rather than rewritten.
+
 ## Executive Summary
 
 DiscordSRVStatusEmbed has grown from a small start/stop status plugin into a broad Paper-to-Discord operations plugin. The current implementation covers a useful private-server feature set: server embeds, Discord commands, player statistics, reporting, staff tools, verification, announcement/changelog relays, and scheduled operational tasks.

@@ -4,15 +4,19 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>me.example</groupId>
-    <artifactId>DiscordSRVStatusEmbed</artifactId>
-    <version>1.12.0</version>
+    <groupId>com.exenova</groupId>
+    <artifactId>ExeNovaLink</artifactId>
+    <version>2.0.0</version>
+    <name>ExeNovaLink</name>
+    <description>All-in-one Discord and Minecraft integration for ExeSMP by ExeNova.</description>
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
-        <maven.compiler.release>25</maven.compiler.release>
+        <!-- Paper 1.21.x only requires Java 21; targeting 25 needlessly limits
+             which server JVMs can even load the compiled jar. -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -25,7 +29,37 @@
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
     </repositories>
+
+    <!-- JDA 5.6.1 pulls jackson 2.18.3, which has high-severity advisories
+         (GHSA-r7wm-3cxj-wff9, GHSA-p6pp-m3f8-5c89, GHSA-7hhh-6rmp-j9qf,
+         GHSA-72hv-8253-57qq). Pin the patched 2.18.x release; plugin.yml's
+         libraries: lists the same versions so Paper downloads them too. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.18.11</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.18.11</version>
+            </dependency>
+            <!-- Compile-only (Paper supplies log4j at runtime); kept on a
+                 release with no open advisories for the dependency review. -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>2.25.5</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -35,12 +69,58 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- DiscordSRV is not published to any public Maven repository, so it -->
-        <!-- can't be pulled in as a normal coordinate-based dependency. The jar -->
-        <!-- is bundled in this repo purely so the project compiles out of the -->
-        <!-- box; scope=system + provided-at-runtime means it is NOT bundled -->
-        <!-- into the shaded jar. DiscordSRV must still be installed separately -->
-        <!-- on the actual server for the plugin to work at runtime. -->
+        <!-- JDA is not shaded: plugin.yml lists it under `libraries:` so Paper
+             downloads it from Maven Central into an isolated classloader on
+             first start. That keeps the jar small and avoids clashing with
+             DiscordSRV's own relocated copy of JDA. Keep this version in
+             sync with plugin.yml. -->
+        <dependency>
+            <groupId>net.dv8tion</groupId>
+            <artifactId>JDA</artifactId>
+            <version>5.6.1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Optional integration (role sync). Provided by LuckPerms at runtime;
+             only touched by integration/LuckPermsHook when it is installed. -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Paper ships log4j-core; used by the Discord console channel to
+             capture the full server log (not just plugin loggers). -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.25.5</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Compile-time only: lets DiscordStatusPlaceholders extend
+             PlaceholderExpansion. Never shaded into the plugin jar and only
+             activated at runtime if PlaceholderAPI is actually installed
+             (see StatusEmbed#registerPlaceholderExpansion). -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- DiscordSRV is an OPTIONAL integration (account links). It is not on
+             any public Maven repository, so the jar is kept in the repo purely
+             to compile integration/DiscordSrvHook. It is never bundled, and
+             that class is only loaded when DiscordSRV is installed. -->
         <dependency>
             <groupId>github.scarsz</groupId>
             <artifactId>discordsrv</artifactId>
@@ -52,16 +132,37 @@
 
     <build>
         <defaultGoal>clean install</defaultGoal>
+        <finalName>ExeNovaLink-${project.version}</finalName>
+        <resources>
+            <!-- Only plugin.yml is filtered (for ${project.version}); filtering
+                 would corrupt binary resources such as gcash-qr.jpg. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes><include>plugin.yml</include></includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes><exclude>plugin.yml</exclude></excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>25</source>
-                    <target>25</target>
-                    <release>25</release>
+                    <compilerArgs><arg>-Xlint:deprecation</arg></compilerArgs>
+                    <source>21</source>
+                    <target>21</target>
+                    <release>21</release>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.4</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

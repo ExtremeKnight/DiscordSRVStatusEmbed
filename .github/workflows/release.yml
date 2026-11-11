@@ -23,11 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java 25
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '21'
           cache: maven
 
       - name: Build release JAR
@@ -43,4 +43,4 @@ jobs:
             README.md
             IMPROVEMENTS.md
             PROJECT_REVIEW.md
-            ${{ (inputs.tag || github.ref_name) == 'v1.9.0' && 'target/DiscordSRVStatusEmbed-*.jar' || '' }}
+            target/ExeNovaLink-*.jar

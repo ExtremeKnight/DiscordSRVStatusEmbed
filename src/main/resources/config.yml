@@ -1,5 +1,8 @@
-# DiscordSRVStatusEmbed configuration
-config-version: 2
+# ExeNovaLink configuration — all-in-one Discord ↔ Minecraft for ExeSMP, by ExeNova.
+# Settings from DiscordSRVStatusEmbed are migrated automatically on first start.
+config-version: 3
+
+# Channel for the server online/offline status embeds.
 channel-id: "1526024733106110524"
 
 embeds:
@@ -54,12 +57,132 @@ security:
   command-cooldown-seconds: 3
 
 discord:
+  # ExeNovaLink runs its OWN bot (DiscordSRV is no longer required).
+  # 1. https://discord.com/developers/applications -> New Application -> Bot -> Reset Token
+  # 2. On the Bot page enable "MESSAGE CONTENT INTENT" and "SERVER MEMBERS INTENT".
+  # 3. Invite it with the bot + applications.commands scopes.
+  # Tip: the EXENOVA_DISCORD_TOKEN environment variable overrides this value.
+  bot-token: "PUT_YOUR_BOT_TOKEN_HERE"
+  # Your Discord server ID. Needed for role sync / linking; makes slash
+  # commands update instantly instead of up to an hour later.
+  guild-id: ""
+  invite-url: ""
+  intents:
+    # Needed for role sync, nickname sync and member lookups. Must also be
+    # enabled in the developer portal.
+    server-members: true
   # Discord user IDs allowed to use !purge and change the prefix.
   owner-ids: []
 
 moderation:
-  # Discord user IDs allowed to use report and suggestion action buttons.
+  # Discord user IDs allowed to use report and suggestion action buttons, and /whois.
   staff-user-ids: []
+  # Or: anyone with one of these Discord roles.
+  staff-role-ids: []
+
+# Two-way Minecraft <-> Discord chat.
+bridge:
+  enabled: false
+  channel-id: ""
+  # Post Minecraft chat through a webhook so each message shows the player's
+  # own name and skin (needs Manage Webhooks). Falls back to bot messages.
+  use-webhooks: true
+  # Supports PlaceholderAPI placeholders, e.g. "%luckperms_prefix%{player}".
+  webhook-username: "{player}"
+  escape-markdown: true
+  ignore-prefix-commands: true
+  max-discord-message-length: 256
+  formats:
+    # Used when webhooks are off/unavailable. {player} {message} + PlaceholderAPI.
+    minecraft-to-discord: "**{player}** » {message}"
+    # & colour codes allowed. {name} {role} {reply} {message}
+    discord-to-minecraft: "&9[Discord] &b{name}&8 » &f{reply}{message}"
+    reply-prefix: "&8(reply to {name}) "
+  messages:
+    join: "**{player}** joined the server"
+    first-join-suffix: "for the first time! 🎉"
+    quit: "**{player}** left the server"
+  events:
+    join: true
+    quit: true
+    death: true
+    advancement: true
+    server-start: true
+    server-stop: true
+  # Words replaced with *** in both directions (players with
+  # exenova.bridge.bypass-filter skip it for Minecraft -> Discord).
+  filtered-words: []
+
+# Minecraft <-> Discord account linking (/link in game or in Discord, or DM the bot the code).
+linking:
+  enabled: true
+  # Kick unlinked players with a link code. Never applies while the bot is offline.
+  required-to-join: false
+  bypass-players: []
+  # Role given to everyone who links.
+  linked-role-id: ""
+  # Rename linked members in Discord (bot needs Manage Nicknames).
+  sync-nicknames: false
+  nickname-format: "{player}"
+  log-channel-id: ""
+
+# Give Discord roles to linked players based on their Minecraft group.
+# Uses LuckPerms if installed, otherwise the group.<name> permission.
+role-sync:
+  enabled: false
+  interval-minutes: 15
+  remove-unmatched: true
+  groups:
+    # minecraft-group: "discord-role-id"
+    vip: ""
+
+# Stream the server console to Discord and run commands from it.
+console:
+  enabled: false
+  channel-id: ""
+  # Nobody can run commands unless listed here. Keep this channel private!
+  allowed-user-ids: []
+  allowed-role-ids: []
+  blocked-commands: ["op", "deop", "stop", "restart"]
+  hide-ip-addresses: true
+
+# Punishment log. Works with any ban plugin (LiteBans, EssentialsX, CMI,
+# vanilla...) by watching these commands; AdvancedBan is read from its API.
+punishments:
+  enabled: false
+  channel-id: ""
+  watch-commands: [ban, tempban, ipban, banip, tempipban, unban, pardon, mute, tempmute, unmute, kick, warn, jail]
+
+# Vote announcements (NuVotifier / Votifier).
+votes:
+  channel-id: ""
+
+# Rename channels to show live stats. Discord allows 2 renames per 10 min,
+# so the interval is at least 10 minutes. {online} {max} {linked} {status}
+channel-stats:
+  enabled: false
+  interval-minutes: 10
+  channels:
+    # "voice-channel-id": "👥 Online: {online}/{max}"
+
+# Optional integrations switch on automatically when the plugin is installed.
+integrations:
+  discordsrv:
+    enabled: true
+    # Use DiscordSRV's existing account links for players not linked here.
+    use-account-links: true
+  luckperms:
+    enabled: true
+  placeholderapi:
+    enabled: true
+  essentials:
+    enabled: true
+  floodgate:
+    enabled: true
+  advancedban:
+    enabled: true
+  votifier:
+    enabled: true
 
 verification:
   enabled: true
@@ -129,6 +252,11 @@ changelog:
       changes:
         - "Added validated slash-command player options for playtime, seen, and statistics lookups."
         - "Added main-thread offline-player resolution for slash commands with clear unknown-player responses."
+    - version: "2.0.0"
+      changes:
+        - "Renamed to ExeNovaLink with its own Discord bot; DiscordSRV is no longer required."
+        - "Added two-way chat bridge with player avatars, account linking, role sync and a Discord console."
+        - "Added punishment and vote logs, stats channels, and PlaceholderAPI, LuckPerms, EssentialsX, Geyser and DiscordSRV integrations."
 
 audit-log:
   enabled: true
@@ -148,6 +276,14 @@ status-dashboard:
   # Set automatically after the first dashboard message is sent.
   message-id: ""
 
+# Updates the bot's Discord "Playing ..." activity text with the current
+# player count on an interval. %online% and %max% are available in the
+# template.
+bot-presence:
+  enabled: true
+  interval-minutes: 5
+  template: "%online%/%max% players online"
+
 backups:
   auto:
     enabled: true
@@ -165,6 +301,8 @@ suggestions:
 
 avatars:
   provider-url: "https://mc-heads.net/avatar/{player}/100"
+  # Bedrock (Geyser/Floodgate) players have no Java skin. {player} {uuid}
+  bedrock-provider-url: "https://mc-heads.net/avatar/MHF_Steve/100"
 
 faq:
   ip: "de1-free.witchly.host"
