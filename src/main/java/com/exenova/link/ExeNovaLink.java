@@ -143,7 +143,10 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         registerPlaceholderExpansion();
         integrations = new Integrations(this);
         integrations.enable();
-        linkManager = new LinkManager(new File(getDataFolder(), "links.yml"), getLogger());
+        linkManager = new LinkManager(
+                com.exenova.link.linking.store.LinkStoreFactory.create(
+                        getDataFolder(), getConfig().getConfigurationSection("linking.storage"), getLogger()),
+                getLogger());
         linkManager.setFallback(integrations::discordSrvLinkedId, integrations::discordSrvLinkedUuid);
         linkManager.load();
         roleSync = new RoleSync(this);
@@ -332,7 +335,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (consoleChannel != null) consoleChannel.stop();
         if (chatBridge != null && isDiscordReady()) chatBridge.sendServerNotice(false, true);
         if (chatBridge != null) chatBridge.unregister();
-        if (linkManager != null) linkManager.save();
+        if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
         dashboardService = null;
