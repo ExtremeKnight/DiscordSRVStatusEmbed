@@ -218,11 +218,12 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
     // ---- helpers ---------------------------------------------------------
 
     private String filter(String text) {
-        List<String> words = plugin.getConfig().getStringList("bridge.filtered-words");
-        String result = text;
-        for (String word : words) {
-            if (word == null || word.isBlank()) continue;
-            result = Pattern.compile(Pattern.quote(word), Pattern.CASE_INSENSITIVE).matcher(result).replaceAll("*".repeat(word.length()));
+        String result = com.exenova.link.chat.TextFilter.censorWords(text, plugin.getConfig().getStringList("bridge.filtered-words"));
+        if (plugin.getConfig().getBoolean("bridge.block-invites", true)) {
+            result = com.exenova.link.chat.TextFilter.stripInvites(result, "[invite removed]");
+        }
+        if (plugin.getConfig().getBoolean("bridge.block-links", false)) {
+            result = com.exenova.link.chat.TextFilter.stripUrls(result, "[link removed]");
         }
         return result;
     }

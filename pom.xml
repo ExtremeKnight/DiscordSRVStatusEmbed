@@ -6,7 +6,7 @@
 
     <groupId>com.exenova</groupId>
     <artifactId>ExeNovaLink</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
     <name>ExeNovaLink</name>
     <description>All-in-one Discord and Minecraft integration for ExeSMP by ExeNova.</description>
     <packaging>jar</packaging>
@@ -96,6 +96,22 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.25.5</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Account-link storage. Not shaded: plugin.yml lists these under
+             libraries: so Paper downloads them (and HikariCP's slf4j) at
+             runtime. Keep versions in sync with plugin.yml. -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.47.1.0</version>
             <scope>provided</scope>
         </dependency>
 

@@ -11,6 +11,11 @@ libraries:
   # Patched over JDA's transitive 2.18.3 (security advisories); keep in sync with pom.xml.
   - com.fasterxml.jackson.core:jackson-core:2.18.11
   - com.fasterxml.jackson.core:jackson-databind:2.18.11
+  # Account-link storage (HikariCP pulls slf4j-api transitively).
+  # The MySQL driver is only loaded at runtime when linking.storage.type: mysql.
+  - com.zaxxer:HikariCP:5.1.0
+  - org.xerial:sqlite-jdbc:3.47.1.0
+  - com.mysql:mysql-connector-j:9.1.0
 # Everything below is optional: each integration switches on only if that
 # plugin is installed. Loading after them lets us hook their APIs on enable.
 # Any other plugin's data can be shown through PlaceholderAPI placeholders.
@@ -135,6 +140,9 @@ permissions:
     default: true
   exenova.socialspy:
     description: Watch other players' private messages
+    default: op
+  exenova.chat.color:
+    description: Use colour codes in your own chat messages (when the formatter allows it)
     default: op
   # Old permission nodes still grant the same access (checked alongside exenova.*).
   discordstatus.reload:

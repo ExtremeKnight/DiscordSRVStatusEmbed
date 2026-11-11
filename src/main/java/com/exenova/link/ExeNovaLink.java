@@ -110,6 +110,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private LinkCommands linkCommands;
     private RoleSync roleSync;
     private ChatBridge chatBridge;
+    private com.exenova.link.chat.ChatFormatter chatFormatter;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
@@ -144,18 +145,24 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         registerPlaceholderExpansion();
         integrations = new Integrations(this);
         integrations.enable();
-        linkManager = new LinkManager(new File(getDataFolder(), "links.yml"), getLogger());
+        linkManager = new LinkManager(
+                com.exenova.link.linking.store.LinkStoreFactory.create(
+                        getDataFolder(), getConfig().getConfigurationSection("linking.storage"), getLogger()),
+                getLogger());
         linkManager.setFallback(integrations::discordSrvLinkedId, integrations::discordSrvLinkedUuid);
         linkManager.load();
         roleSync = new RoleSync(this);
         linkCommands = new LinkCommands(this);
         chatBridge = new ChatBridge(this);
         privateMessages = new com.exenova.link.chat.pm.PrivateMessages(this);
+        chatFormatter = new com.exenova.link.chat.ChatFormatter(this);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
         Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
+        Bukkit.getPluginManager().registerEvents(chatFormatter, this);
+        if (chatFormatter.enabled()) getLogger().info("In-game chat formatter is enabled.");
         Bukkit.getPluginManager().registerEvents(new PunishmentWatcher(this), this);
 
         discordBot = new DiscordBot(this);
@@ -335,7 +342,8 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (consoleChannel != null) consoleChannel.stop();
         if (chatBridge != null && isDiscordReady()) chatBridge.sendServerNotice(false, true);
         if (chatBridge != null) chatBridge.unregister();
-        if (linkManager != null) linkManager.save();
+        if (chatFormatter != null) chatFormatter.unregister();
+        if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
         dashboardService = null;
