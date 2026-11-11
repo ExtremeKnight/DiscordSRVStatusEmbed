@@ -1,11 +1,9 @@
 package com.exenova.link.linking;
 
-import org.bukkit.configuration.file.YamlConfiguration;
+import com.exenova.link.linking.store.LinkStore;
+import com.exenova.link.linking.store.YamlLinkStore;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Optional;
@@ -16,7 +14,10 @@ import java.util.function.LongSupplier;
 import java.util.logging.Logger;
 
 /**
- * Minecraft ↔ Discord account links, persisted in {@code links.yml}.
+ * Minecraft ↔ Discord account links. The links are held in memory and persisted
+ * through a {@link LinkStore} (YAML, SQLite or MySQL); reads are always served
+ * from memory, so the backend never blocks a lookup. Linking is a rare,
+ * user-initiated action, so each change is written through synchronously.
  *
  * <p>Linking works in either direction with a short one-time code: run
  * {@code /link} in Minecraft and give the code to the bot (slash command or
@@ -41,17 +42,21 @@ public final class LinkManager {
     private final Map<String, Pending> codes = new ConcurrentHashMap<>();
     private final Map<String, Attempts> attempts = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
-    private final File file;
+    private final LinkStore store;
     private final Logger logger;
     private final LongSupplier clock;
-    private final Object saveLock = new Object();
     private Function<UUID, Optional<String>> fallbackDiscord = uuid -> Optional.empty();
     private Function<String, Optional<UUID>> fallbackMinecraft = id -> Optional.empty();
 
-    public LinkManager(File file, Logger logger) { this(file, logger, System::currentTimeMillis); }
+    public LinkManager(LinkStore store, Logger logger) { this(store, logger, System::currentTimeMillis); }
 
-    LinkManager(File file, Logger logger, LongSupplier clock) {
-        this.file = file;
+    /** Backwards-compatible constructor: persists to {@code file} as YAML. */
+    public LinkManager(File file, Logger logger) { this(new YamlLinkStore(file, logger), logger, System::currentTimeMillis); }
+
+    LinkManager(File file, Logger logger, LongSupplier clock) { this(new YamlLinkStore(file, logger), logger, clock); }
+
+    LinkManager(LinkStore store, Logger logger, LongSupplier clock) {
+        this.store = store;
         this.logger = logger;
         this.clock = clock;
     }
@@ -65,40 +70,19 @@ public final class LinkManager {
     public void load() {
         byMinecraft.clear();
         byDiscord.clear();
-        if (!file.isFile()) return;
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-        var section = yaml.getConfigurationSection("links");
-        if (section == null) return;
-        for (String key : section.getKeys(false)) {
-            String discordId = section.getString(key, "");
-            try {
-                if (discordId.matches("\\d{17,20}")) put(UUID.fromString(key), discordId);
-            } catch (IllegalArgumentException ignored) {
-                logger.warning("Skipping invalid entry in links.yml: " + key);
-            }
+        try {
+            store.loadAll().forEach(this::putInMemory);
+            logger.info("Loaded " + byMinecraft.size() + " linked account(s) from " + store.describe() + ".");
+        } catch (Exception exception) {
+            logger.warning("Could not load links from " + store.describe() + ": " + exception.getMessage());
         }
-        logger.info("Loaded " + byMinecraft.size() + " linked account(s).");
     }
 
-    /** Writes links.yml atomically (temp file + move) so a crash mid-save never truncates it. */
-    public void save() {
-        synchronized (saveLock) {
-            YamlConfiguration yaml = new YamlConfiguration();
-            byMinecraft.forEach((uuid, discord) -> yaml.set("links." + uuid, discord));
-            try {
-                File parent = file.getParentFile();
-                if (parent != null && !parent.exists() && !parent.mkdirs()) throw new IOException("Could not create " + parent);
-                File temp = new File(parent, file.getName() + ".tmp");
-                yaml.save(temp);
-                try {
-                    Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
-                    Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException exception) {
-                logger.warning("Could not save links.yml: " + exception.getMessage());
-            }
-        }
+    /** Writes are per-change now; retained so the existing shutdown call is a harmless flush. */
+    public void save() { /* no-op: link()/unlink() write through to the store */ }
+
+    public void close() {
+        try { store.close(); } catch (Exception exception) { logger.warning("Error closing link store: " + exception.getMessage()); }
     }
 
     public Optional<String> discordId(UUID minecraft) {
@@ -162,24 +146,21 @@ public final class LinkManager {
         return onSuccess.apply(pending);
     }
 
-    /** Links (replacing any previous link of either account) and saves. */
+    /** Links (replacing any previous link of either account) and persists. */
     public Result link(UUID minecraft, String discordId) {
         if (discordId.equals(byMinecraft.get(minecraft))) return Result.ALREADY_LINKED;
-        unlinkMinecraft(minecraft, false);
+        removeFromMemory(minecraft);
         UUID previous = byDiscord.get(discordId);
-        if (previous != null) unlinkMinecraft(previous, false);
-        put(minecraft, discordId);
-        save();
+        if (previous != null) removeFromMemory(previous);
+        putInMemory(minecraft, discordId);
+        store.put(minecraft, discordId, clock.getAsLong(), "user");
         return Result.LINKED;
     }
 
     /** Removes a link; returns the Discord ID that was linked, if any. */
-    public Optional<String> unlinkMinecraft(UUID minecraft) { return unlinkMinecraft(minecraft, true); }
-
-    private Optional<String> unlinkMinecraft(UUID minecraft, boolean save) {
-        String discordId = byMinecraft.remove(minecraft);
-        if (discordId != null) byDiscord.remove(discordId, minecraft);
-        if (discordId != null && save) save();
+    public Optional<String> unlinkMinecraft(UUID minecraft) {
+        String discordId = removeFromMemory(minecraft);
+        if (discordId != null) store.remove(minecraft);
         return Optional.ofNullable(discordId);
     }
 
@@ -191,9 +172,15 @@ public final class LinkManager {
 
     public Map<UUID, String> snapshot() { return Map.copyOf(byMinecraft); }
 
-    private void put(UUID minecraft, String discordId) {
+    private void putInMemory(UUID minecraft, String discordId) {
         byMinecraft.put(minecraft, discordId);
         byDiscord.put(discordId, minecraft);
+    }
+
+    private String removeFromMemory(UUID minecraft) {
+        String discordId = byMinecraft.remove(minecraft);
+        if (discordId != null) byDiscord.remove(discordId, minecraft);
+        return discordId;
     }
 
     private void purgeExpired() {
