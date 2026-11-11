@@ -137,6 +137,20 @@ chat:
     block-invites: true
     filtered-words: []
 
+  # Emoji shortcuts: :code: becomes the symbol below, in game chat and the
+  # bridge. Needs the exenova.chat.emoji permission (default: everyone).
+  emoji:
+    enabled: true
+    list:
+      shrug: "¯\\_(ツ)_/¯"
+      smile: "☺"
+      heart: "❤"
+      star: "★"
+      check: "✔"
+      cross: "✖"
+      note: "♪"
+      arrow: "➤"
+
   # Chat channels (/channel <name>). OFF by default. When on, each player talks
   # in one channel at a time; a channel's own format overrides formatter formats.
   # radius > 0 makes a channel local (only players within that many blocks, same
@@ -162,6 +176,29 @@ chat:
         radius: 0
         permission: exenova.chat.staff
         auto-join: false
+
+# Notify players when @mentioned in chat (needs the exenova.chat.mention permission).
+mentions:
+  enabled: true
+  sound: ENTITY_EXPERIENCE_ORB_PICKUP
+  message: "&e{player} mentioned you in chat"
+  title: false
+
+# Server watchdog: posts a staff alert when TPS/RAM/CPU cross a threshold, and
+# again when the server recovers. Only transitions are posted (no spam).
+watchdog:
+  enabled: false
+  channel-id: ""
+  interval-seconds: 30
+  # Ping this role on warning/critical (optional).
+  mention-role-id: ""
+  announce-warnings: true
+  tps-warn: 18.0
+  tps-critical: 15.0
+  ram-warn-percent: 85
+  ram-critical-percent: 95
+  cpu-warn-percent: 85
+  cpu-critical-percent: 95
 
 # Private messages: /msg, /reply (/r), /ignore, /socialspy. Server-side only.
 # {sender} {target} {message} and & colour codes. Players' own colour codes in
@@ -193,6 +230,9 @@ linking:
   bypass-players: []
   # Role given to everyone who links.
   linked-role-id: ""
+  # Role held only while the linked player is online in-game (bot needs Manage Roles,
+  # and the role must sit below the bot's top role). Empty = disabled.
+  online-role-id: ""
   # Rename linked members in Discord (bot needs Manage Nicknames).
   sync-nicknames: false
   nickname-format: "{player}"

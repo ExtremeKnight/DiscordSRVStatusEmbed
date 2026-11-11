@@ -114,6 +114,8 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private com.exenova.link.chat.channel.ChatChannels chatChannels;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.chat.MentionListener mentionListener;
+    private com.exenova.link.watchdog.Watchdog watchdog;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
 
     @Override
@@ -160,11 +162,14 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         chatFormatter = new com.exenova.link.chat.ChatFormatter(this, chatChannels);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
+        mentionListener = new com.exenova.link.chat.MentionListener(this);
+        watchdog = new com.exenova.link.watchdog.Watchdog(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
         Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
         Bukkit.getPluginManager().registerEvents(chatFormatter, this);
         Bukkit.getPluginManager().registerEvents(chatChannels, this);
+        Bukkit.getPluginManager().registerEvents(mentionListener, this);
         if (chatFormatter.enabled()) getLogger().info("In-game chat formatter is enabled.");
         Bukkit.getPluginManager().registerEvents(new PunishmentWatcher(this), this);
 
@@ -202,6 +207,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         long roleSyncMinutes = Math.max(1, getConfig().getLong("role-sync.interval-minutes", 15));
         schedulerService.repeatAsync(20L * 60L, 20L * 60L * roleSyncMinutes, () -> { if (roleSync != null && isDiscordReady()) roleSync.syncOnline(); });
         schedulerService.repeatAsync(20L * 30L, channelStats.intervalTicks(), () -> { if (isDiscordReady()) channelStats.update(); });
+        if (watchdog.enabled()) schedulerService.repeatSync(watchdog.intervalTicks(), watchdog.intervalTicks(), watchdog::check);
     }
 
     private void stopBackgroundTasks() {
@@ -272,6 +278,15 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         String id = getConfig().getString(configPath, "");
         TextChannel channel = jda == null || !id.matches("\\d{17,20}") ? null : jda.getTextChannelById(id);
         if (channel != null) channel.sendMessageEmbeds(embed).queue(null,
+                failure -> getLogger().warning("Could not post to " + configPath + ": " + failure.getMessage()));
+    }
+
+    /** As {@link #postToChannel} but with leading message content (e.g. a role ping). */
+    public void postToChannelWithContent(String configPath, String content, MessageEmbed embed) {
+        JDA jda = jda();
+        String id = getConfig().getString(configPath, "");
+        TextChannel channel = jda == null || !id.matches("\\d{17,20}") ? null : jda.getTextChannelById(id);
+        if (channel != null) channel.sendMessage(content).addEmbeds(embed).queue(null,
                 failure -> getLogger().warning("Could not post to " + configPath + ": " + failure.getMessage()));
     }
 
@@ -348,6 +363,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (chatBridge != null) chatBridge.unregister();
         if (chatFormatter != null) chatFormatter.unregister();
         if (chatChannels != null) chatChannels.unregister();
+        if (mentionListener != null) mentionListener.unregister();
         if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
@@ -1321,6 +1337,16 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private String getAvatarUrl(String playerName) {
         OfflinePlayer known = Bukkit.getPlayerExact(playerName);
         return avatarUrl(playerName, known == null ? null : known.getUniqueId());
+    }
+
+    /** Replaces :shortcode: emoji in a chat message, if enabled and the player may use them. */
+    public String applyEmoji(Player player, String message) {
+        if (!getConfig().getBoolean("chat.emoji.enabled", true) || !player.hasPermission("exenova.chat.emoji")) return message;
+        org.bukkit.configuration.ConfigurationSection section = getConfig().getConfigurationSection("chat.emoji.list");
+        if (section == null) return message;
+        Map<String, String> map = new java.util.HashMap<>();
+        for (String key : section.getKeys(false)) map.put(key, section.getString(key, ""));
+        return com.exenova.link.chat.Emoji.apply(message, map);
     }
 
     /** Skin/avatar URL; Bedrock (Floodgate) players use avatars.bedrock-provider-url. */

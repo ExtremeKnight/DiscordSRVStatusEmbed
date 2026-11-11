@@ -92,6 +92,7 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
         if (plugin.integrations().isMuted(player) || plugin.integrations().isVanished(player)) return;
         String message = PLAIN.serialize(event.message());
         if (!player.hasPermission("exenova.bridge.bypass-filter")) message = filter(message);
+        message = plugin.applyEmoji(player, message);
         if (message.isBlank()) return;
         sendAsPlayer(player, message);
     }
