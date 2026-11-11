@@ -133,6 +133,20 @@ chat:
     block-invites: true
     filtered-words: []
 
+  # Emoji shortcuts: :code: becomes the symbol below, in game chat and the
+  # bridge. Needs the exenova.chat.emoji permission (default: everyone).
+  emoji:
+    enabled: true
+    list:
+      shrug: "¯\\_(ツ)_/¯"
+      smile: "☺"
+      heart: "❤"
+      star: "★"
+      check: "✔"
+      cross: "✖"
+      note: "♪"
+      arrow: "➤"
+
   # Chat channels (/channel <name>). OFF by default. When on, each player talks
   # in one channel at a time; a channel's own format overrides formatter formats.
   # radius > 0 makes a channel local (only players within that many blocks, same
@@ -205,6 +219,9 @@ linking:
   bypass-players: []
   # Role given to everyone who links.
   linked-role-id: ""
+  # Role held only while the linked player is online in-game (bot needs Manage Roles,
+  # and the role must sit below the bot's top role). Empty = disabled.
+  online-role-id: ""
   # Rename linked members in Discord (bot needs Manage Nicknames).
   sync-nicknames: false
   nickname-format: "{player}"

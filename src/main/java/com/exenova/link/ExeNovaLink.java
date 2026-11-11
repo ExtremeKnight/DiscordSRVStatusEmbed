@@ -1335,6 +1335,16 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         return avatarUrl(playerName, known == null ? null : known.getUniqueId());
     }
 
+    /** Replaces :shortcode: emoji in a chat message, if enabled and the player may use them. */
+    public String applyEmoji(Player player, String message) {
+        if (!getConfig().getBoolean("chat.emoji.enabled", true) || !player.hasPermission("exenova.chat.emoji")) return message;
+        org.bukkit.configuration.ConfigurationSection section = getConfig().getConfigurationSection("chat.emoji.list");
+        if (section == null) return message;
+        Map<String, String> map = new java.util.HashMap<>();
+        for (String key : section.getKeys(false)) map.put(key, section.getString(key, ""));
+        return com.exenova.link.chat.Emoji.apply(message, map);
+    }
+
     /** Skin/avatar URL; Bedrock (Floodgate) players use avatars.bedrock-provider-url. */
     public String avatarUrl(String playerName, UUID uuid) {
         boolean bedrock = uuid != null && integrations != null && integrations.isBedrock(uuid);

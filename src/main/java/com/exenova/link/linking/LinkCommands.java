@@ -222,6 +222,14 @@ public final class LinkCommands extends ListenerAdapter implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         // Small delay so permission plugins have finished loading the player's groups.
-        Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.roleSync().sync(uuid), 40L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.roleSync().sync(uuid);
+            plugin.roleSync().setOnlineRole(uuid, true);
+        }, 40L);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        plugin.roleSync().setOnlineRole(event.getPlayer().getUniqueId(), false);
     }
 }
