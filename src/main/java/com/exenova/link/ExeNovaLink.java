@@ -114,6 +114,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private com.exenova.link.chat.channel.ChatChannels chatChannels;
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
+    private com.exenova.link.chat.pm.PrivateMessages privateMessages;
 
     @Override
     public void onEnable() {
@@ -145,17 +146,22 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         registerPlaceholderExpansion();
         integrations = new Integrations(this);
         integrations.enable();
-        linkManager = new LinkManager(new File(getDataFolder(), "links.yml"), getLogger());
+        linkManager = new LinkManager(
+                com.exenova.link.linking.store.LinkStoreFactory.create(
+                        getDataFolder(), getConfig().getConfigurationSection("linking.storage"), getLogger()),
+                getLogger());
         linkManager.setFallback(integrations::discordSrvLinkedId, integrations::discordSrvLinkedUuid);
         linkManager.load();
         roleSync = new RoleSync(this);
         linkCommands = new LinkCommands(this);
         chatBridge = new ChatBridge(this);
         chatChannels = new com.exenova.link.chat.channel.ChatChannels(this);
+        privateMessages = new com.exenova.link.chat.pm.PrivateMessages(this);
         chatFormatter = new com.exenova.link.chat.ChatFormatter(this, chatChannels);
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
+        Bukkit.getPluginManager().registerEvents(privateMessages, this);
         Bukkit.getPluginManager().registerEvents(chatBridge, this);
         Bukkit.getPluginManager().registerEvents(chatFormatter, this);
         Bukkit.getPluginManager().registerEvents(chatChannels, this);
@@ -342,7 +348,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         if (chatBridge != null) chatBridge.unregister();
         if (chatFormatter != null) chatFormatter.unregister();
         if (chatChannels != null) chatChannels.unregister();
-        if (linkManager != null) linkManager.save();
+        if (linkManager != null) linkManager.close();
         if (integrations != null) integrations.disable();
         schedulerService = null;
         dashboardService = null;
@@ -471,6 +477,10 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command cmd, String label, String[] args) {
         switch (cmd.getName().toLowerCase(java.util.Locale.ROOT)) {
             case "channel": return chatChannels.onCommand(sender, args);
+            case "msg": return privateMessages.onMsg(sender, args);
+            case "reply": return privateMessages.onReply(sender, args);
+            case "ignore": return privateMessages.onIgnore(sender, args);
+            case "socialspy": return privateMessages.onSocialSpy(sender, args);
             case "link": return linkCommands.onLinkCommand(sender, args);
             case "unlink": return linkCommands.onUnlinkCommand(sender);
             case "discord": return linkCommands.onDiscordCommand(sender);
@@ -523,6 +533,9 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         switch (name) {
             case "channel":
                 return args.length == 1 && chatChannels != null ? chatChannels.complete(sender, args[0]) : java.util.Collections.emptyList();
+            case "msg":
+            case "ignore":
+                return args.length == 1 ? onlinePlayerNames(sender, args[0]) : java.util.Collections.emptyList();
             case "dsreport":
                 return args.length == 1 ? onlinePlayerNames(sender, args[0]) : java.util.Collections.emptyList();
             case "dsnote":

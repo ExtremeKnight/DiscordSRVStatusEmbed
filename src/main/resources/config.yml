@@ -159,9 +159,31 @@ chat:
         permission: exenova.chat.staff
         auto-join: false
 
+# Private messages: /msg, /reply (/r), /ignore, /socialspy. Server-side only.
+# {sender} {target} {message} and & colour codes. Players' own colour codes in
+# the message body are stripped.
+private-messages:
+  enabled: true
+  sound: true
+  format-to: "&7[&fyou &7-> &f{target}&7] &f{message}"
+  format-from: "&7[&f{sender} &7-> &fyou&7] &f{message}"
+  format-spy: "&8[spy] &7{sender} -> {target}: &8{message}"
+
 # Minecraft <-> Discord account linking (/link in game or in Discord, or DM the bot the code).
 linking:
   enabled: true
+  storage:
+    # sqlite (default, zero setup - stored in plugins/ExeNovaLink/links.db) or mysql.
+    # An existing links.yml is imported automatically on first start.
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: exenova
+      username: ""
+      password: ""
+      table-prefix: "exenova_"
+      pool-size: 6
   # Kick unlinked players with a link code. Never applies while the bot is offline.
   required-to-join: false
   bypass-players: []
@@ -303,6 +325,9 @@ changelog:
         - "Renamed to ExeNovaLink with its own Discord bot; DiscordSRV is no longer required."
         - "Added two-way chat bridge with player avatars, account linking, role sync and a Discord console."
         - "Added punishment and vote logs, stats channels, and PlaceholderAPI, LuckPerms, EssentialsX, Geyser and DiscordSRV integrations."
+    - version: "2.1.0"
+      changes:
+        - "Account links are now stored in a database (SQLite by default, MySQL optional); links.yml is migrated automatically."
 
 audit-log:
   enabled: true

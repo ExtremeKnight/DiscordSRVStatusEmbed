@@ -11,6 +11,11 @@ libraries:
   # Patched over JDA's transitive 2.18.3 (security advisories); keep in sync with pom.xml.
   - com.fasterxml.jackson.core:jackson-core:2.18.11
   - com.fasterxml.jackson.core:jackson-databind:2.18.11
+  # Account-link storage (HikariCP pulls slf4j-api transitively).
+  # The MySQL driver is only loaded at runtime when linking.storage.type: mysql.
+  - com.zaxxer:HikariCP:5.1.0
+  - org.xerial:sqlite-jdbc:3.47.1.0
+  - com.mysql:mysql-connector-j:9.1.0
 # Everything below is optional: each integration switches on only if that
 # plugin is installed. Loading after them lets us hook their APIs on enable.
 # Any other plugin's data can be shown through PlaceholderAPI placeholders.
@@ -50,6 +55,25 @@ commands:
   discord:
     description: Show the Discord invite and your link status
     usage: /discord
+  msg:
+    description: Send a private message
+    usage: /msg <player> <message>
+    aliases: [m, tell, w, whisper, pm]
+    permission: exenova.msg
+  reply:
+    description: Reply to your last private message
+    usage: /reply <message>
+    aliases: [r]
+    permission: exenova.msg
+  ignore:
+    description: Toggle ignoring a player's private messages
+    usage: /ignore <player>
+    permission: exenova.msg
+  socialspy:
+    description: Watch other players' private messages
+    usage: /socialspy
+    aliases: [spy]
+    permission: exenova.socialspy
   dsreport:
     description: Open the player reporting menu
     usage: /dsreport [player]
@@ -115,6 +139,12 @@ permissions:
     default: true
   exenova.bridge.bypass-filter:
     description: Chat sent to Discord skips the word filter
+    default: op
+  exenova.msg:
+    description: Use private messages (/msg, /reply, /ignore)
+    default: true
+  exenova.socialspy:
+    description: Watch other players' private messages
     default: op
   exenova.chat.color:
     description: Use colour codes in your own chat messages (when the formatter allows it)
