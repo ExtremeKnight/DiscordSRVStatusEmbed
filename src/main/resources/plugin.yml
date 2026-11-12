@@ -20,6 +20,7 @@ libraries:
 # plugin is installed. Loading after them lets us hook their APIs on enable.
 # Any other plugin's data can be shown through PlaceholderAPI placeholders.
 softdepend:
+  - ProtocolLib
   - DiscordSRV
   - PlaceholderAPI
   - LuckPerms

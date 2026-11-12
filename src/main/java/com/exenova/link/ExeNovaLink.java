@@ -115,6 +115,7 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     private ConsoleChannel consoleChannel;
     private ChannelStats channelStats;
     private com.exenova.link.image.ImageMaps imageMaps;
+    private com.exenova.link.image.InChatMaps inChatMaps;
     private com.exenova.link.chat.MentionListener mentionListener;
     private com.exenova.link.watchdog.Watchdog watchdog;
     private com.exenova.link.chat.pm.PrivateMessages privateMessages;
@@ -164,6 +165,8 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
         consoleChannel = new ConsoleChannel(this);
         channelStats = new ChannelStats(this);
         imageMaps = new com.exenova.link.image.ImageMaps(this);
+        inChatMaps = com.exenova.link.image.InChatMaps.createIfAvailable(this);
+        if (inChatMaps != null && inChatMaps.enabled()) getLogger().info("In-chat image maps enabled (ProtocolLib).");
         mentionListener = new com.exenova.link.chat.MentionListener(this);
         watchdog = new com.exenova.link.watchdog.Watchdog(this);
         Bukkit.getPluginManager().registerEvents(linkCommands, this);
@@ -269,6 +272,10 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
     public RoleSync roleSync() { return roleSync; }
     public AutomationManager automations() { return automationManager; }
     public com.exenova.link.chat.channel.ChatChannels chatChannels() { return chatChannels; }
+    /** The in-chat ProtocolLib map renderer, or null when ProtocolLib is absent or the feature is off. */
+    public com.exenova.link.image.InChatMaps inChatMaps() {
+        return inChatMaps != null && inChatMaps.enabled() ? inChatMaps : null;
+    }
 
     /** True if {@code subject} has {@code exenova.<node>} or the legacy {@code discordstatus.<node>}. */
     public static boolean can(Permissible subject, String node) {
@@ -525,6 +532,12 @@ public class ExeNovaLink extends JavaPlugin implements Listener {
             if (!can(sender, "config")) { sender.sendMessage("§cYou do not have permission to do that."); return true; }
             if (rest.length != 1) { sender.sendMessage("§eUsage: /" + label + " image <url>"); return true; }
             imageMaps.giveFromUrl(player, rest[0]);
+            return true;
+        }
+        if (sub.equals("viewimage")) {
+            // Hidden: run by clicking an image in the Discord bridge when in-chat maps are on.
+            if (!(sender instanceof Player player)) return true;
+            if (inChatMaps() != null && rest.length == 1) inChatMaps().showFromToken(player, rest[0]);
             return true;
         }
         if (sub.equals("status")) {

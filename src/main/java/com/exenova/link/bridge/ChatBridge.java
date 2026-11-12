@@ -254,17 +254,32 @@ public final class ChatBridge extends ListenerAdapter implements Listener {
         return TextReplacementConfig.builder().matchLiteral(token).replacement(Component.text(value)).build();
     }
 
-    /** Broadcasts one clickable "[image: name]" line per attachment (click opens the URL). */
+    /**
+     * Broadcasts one clickable "[image: name]" line per attachment. By default the
+     * click opens the URL in a browser; when the in-chat map renderer (ProtocolLib)
+     * is active, clicking an image/GIF instead renders it on a map in-game.
+     */
     private void broadcastAttachmentPreviews(List<Message.Attachment> attachments) {
         String prefix = plugin.getConfig().getString("bridge.formats.attachment-prefix", "&9[Discord] &7shared ");
+        var inChat = plugin.inChatMaps();
         for (Message.Attachment attachment : attachments) {
             String label = AttachmentPreview.label(attachment.getFileName(), attachment.isImage());
             String url = attachment.getUrl();
+            AttachmentPreview.Kind kind = AttachmentPreview.kind(attachment.getFileName(), attachment.isImage());
+            boolean renderable = inChat != null && (kind == AttachmentPreview.Kind.IMAGE || kind == AttachmentPreview.Kind.GIF);
+            net.kyori.adventure.text.event.ClickEvent click;
+            String hover;
+            if (renderable) {
+                click = net.kyori.adventure.text.event.ClickEvent.runCommand("/exenova viewimage " + inChat.cache(url));
+                hover = "Click to view in-game";
+            } else {
+                click = net.kyori.adventure.text.event.ClickEvent.openUrl(url);
+                hover = "Click to open " + attachment.getFileName();
+            }
             Component line = LegacyComponentSerializer.legacyAmpersand().deserialize(prefix)
                     .append(Component.text(label, net.kyori.adventure.text.format.NamedTextColor.AQUA)
-                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url))
-                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                    Component.text("Click to open " + attachment.getFileName()))));
+                            .clickEvent(click)
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(Component.text(hover))));
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().broadcast(line));
         }
     }
